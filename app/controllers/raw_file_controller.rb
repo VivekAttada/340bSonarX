@@ -1,0 +1,2 @@
+class RawfileController < ApplicationController
+end
