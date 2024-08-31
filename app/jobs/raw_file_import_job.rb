@@ -6,7 +6,7 @@ class RawFileImportJob < ApplicationJob
   end
 
   def perform
-    RawFile.import expected_headers, @batch
+    RawFile.import_data(expected_headers, @batch)
   end
 
   def expected_headers

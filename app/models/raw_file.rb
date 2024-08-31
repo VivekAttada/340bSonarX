@@ -52,4 +52,19 @@ class RawFile < ApplicationRecord
 
     Delayed::Job.enqueue RawFileImportJob.new(batch)
   end
+
+  def self.import_data(headers, batch)
+    # Create a mapping of header names to model attributes
+    header_mapping = headers.map(&:downcase).map(&:to_sym)
+
+    batch.each do |data_row|
+      # Convert each row into a hash where keys are attribute names
+      attributes = header_mapping.zip(data_row).to_h
+
+      # Create or update records based on the attributes hash
+      # Assuming `name` or any other attribute can be used to identify the record
+      record = new(attributes)
+      record.save!
+    end
+  end
 end

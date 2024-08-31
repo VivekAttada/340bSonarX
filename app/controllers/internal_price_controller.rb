@@ -2,8 +2,9 @@ class InternalPriceController < ApplicationController
 
  def index
  	@internal_price = InternalPrice.new
-    @marketing_price = MarketingPrice.new
-    @raw_file = RawFile.new
+  @marketing_price = MarketingPrice.new
+  @raw_file = RawFile.new
+  @internal_details = InternalPrice.all.page(params[:drug_page]).per(30)
  end
 
  def internal_file_bulk_upload

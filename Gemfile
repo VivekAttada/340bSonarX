@@ -28,6 +28,7 @@ gem 'jbuilder', '~> 2.7'
 gem 'delayed_job_active_record'
 
 gem 'roo', '2.8.3'
+gem 'kaminari'
 
 # Reduces boot times through caching; required in config/boot.rb
 gem 'bootsnap', '>= 1.4.4', require: false

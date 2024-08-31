@@ -1,18 +1,41 @@
 <center>
-<div class="mt-[0px]">
-  <%= form_for @internal_price, url: internal_file_bulk_upload_path, method: :post, html: { multipart: true } do |f| %>
-  <%= f.file_field :file %>
-  <%= f.submit "Upload Internal Pharmacy File" %>
-<% end %><br><br>
-
-<%= form_for @marketing_price, url: marketing_file_bulk_upload_path, method: :post, html: { multipart: true } do |f| %>
-  <%= f.file_field :file %>
-  <%= f.submit "Upload Market Price File" %>
-<% end %><br><br>
-
-<%= form_for @raw_file, url: raw_file_bulk_upload_path, method: :post, html: { multipart: true } do |f| %>
-  <%= f.file_field :file %>
-  <%= f.submit "Upload Raw File" %>
-<% end %><br><br>
+  <div style="width: 80%;">
+  <div class="mt-[0px]">
+    <%= form_for @internal_price, url: internal_file_bulk_upload_path, method: :post, html: { multipart: true } do |f| %>
+      <%= f.file_field :file %>
+      <%= f.submit "Upload Internal Pharmacy File" %>
+    <% end %><br>
+    <%= form_for @marketing_price, url: marketing_file_bulk_upload_path, method: :post, html: { multipart: true } do |f| %>
+      <%= f.file_field :file %>
+      <%= f.submit "Upload Market Price File" %>
+    <% end %><br>
+    <%= form_for @raw_file, url: raw_file_bulk_upload_path, method: :post, html: { multipart: true } do |f| %>
+      <%= f.file_field :file %>
+      <%= f.submit "Upload Raw File" %>
+    <% end %><br>
+  </div>
+  <table style="border: 2px solid black;width: 100%;">
+    <thead>
+      <tr>
+        <th>Health System Name</th>
+        <th>NDC code</th>
+        <th>BIN</th>
+        <th>PCN</th>
+        <th>REIMBURSEMENT TOTAL</th>
+        <th>TRANSACTION DATE</th>
+      </tr>
+    <tbody>
+      <% @internal_details.each do |details| %>
+        <tr>
+          <td><%= details.health_system_name %></td>
+          <td><%= details.ndc %></td>
+          <td><%= details.bin %></td>
+          <td><%= details.pcn %></td>
+          <td><%= number_with_delimiter(details.reimbursement_total) %></td>
+          <td><%= details.transaction_date %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
 </div>
 </center>

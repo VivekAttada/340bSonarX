@@ -6,7 +6,7 @@ class MarketFileImportJob < ApplicationJob
   end
 
   def perform
-    MarketingPrice.import expected_headers, @batch
+    MarketingPrice.import_data(expected_headers, @batch)
   end
 
   def expected_headers
