@@ -1,5 +1,6 @@
-class RawFile < ApplicationRecord
+# frozen_string_literal: true
 
+class RawFile < ApplicationRecord
   def self.open_spreadsheet(file)
     case File.extname(file.original_filename)
     when '.csv' then Roo::CSV.new(file.path)
@@ -44,7 +45,7 @@ class RawFile < ApplicationRecord
   end
 
   def self.expected_headers
-    %w[contract_pharmacy_name ndc pa_class program_revenue quantity pharmacy_npi health_system_name rx_file_provider_name]
+    %w[contract_pharmacy_name ndc program_revenue quantity pharmacy_npi rx_file_provider_name health_system_name]
   end
 
   def self.process_row(batch)

@@ -1,5 +1,6 @@
-class InternalPrice < ApplicationRecord
+# frozen_string_literal: true
 
+class InternalPrice < ApplicationRecord
   def self.open_spreadsheet(file)
     case File.extname(file.original_filename)
     when '.csv' then Roo::CSV.new(file.path)
@@ -44,7 +45,7 @@ class InternalPrice < ApplicationRecord
   end
 
   def self.expected_headers
-   %w[ndc bin pcn group state reimbursement_total quantity_dispensed transaction_date health_system_name]
+    %w[ndc bin pcn group state reimbursement_total quantity_dispensed transaction_date health_system_name]
   end
 
   def self.process_row(batch)
@@ -65,6 +66,13 @@ class InternalPrice < ApplicationRecord
       # Assuming `name` or any other attribute can be used to identify the record
       record = new(attributes)
       record.save!
+    end
+  end
+
+  def self.update_paid_status
+    matched_records = RawFile.where(matched_status: true).all.map(&:id)
+    matched_records.each do |viv|
+      Delayed::Job.enqueue UpdatePaidStatusJob.new(viv)
     end
   end
 end

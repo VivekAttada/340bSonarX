@@ -1,5 +1,6 @@
-class MarketingPrice < ApplicationRecord
+# frozen_string_literal: true
 
+class MarketingPrice < ApplicationRecord
   def self.open_spreadsheet(file)
     case File.extname(file.original_filename)
     when '.csv' then Roo::CSV.new(file.path)
@@ -44,7 +45,7 @@ class MarketingPrice < ApplicationRecord
   end
 
   def self.expected_headers
-    %w[ndc bin pcn group state reimbursement_total quantity_dispensed transaction_date health_system_name]
+    %w[ndc bin pcn group state claim_cost quantity_dispensed health_system_name]
   end
 
   def self.process_row(batch)

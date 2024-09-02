@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class InternalFileImportJob
   def initialize(batch)
     @batch = batch

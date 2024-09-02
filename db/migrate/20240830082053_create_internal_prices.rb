@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class CreateInternalPrices < ActiveRecord::Migration[6.1]
   def change
     create_table :internal_prices do |t|
@@ -9,7 +11,7 @@ class CreateInternalPrices < ActiveRecord::Migration[6.1]
       t.float :reimbursement_total
       t.float :quantity_dispensed
       t.datetime :transaction_date
-      t.boolean :matched_status , default: false
+      t.boolean :matched_status, default: false
       t.string :health_system_name
 
       t.timestamps

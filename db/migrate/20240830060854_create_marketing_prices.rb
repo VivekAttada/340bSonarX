@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class CreateMarketingPrices < ActiveRecord::Migration[6.1]
   def change
     create_table :marketing_prices do |t|
@@ -8,7 +10,7 @@ class CreateMarketingPrices < ActiveRecord::Migration[6.1]
       t.string :state
       t.float :claim_cost
       t.float :quantity_dispensed
-      t.boolean :matched_status , default: false
+      t.boolean :matched_status, default: false
       t.string :health_system_name
 
       t.timestamps

@@ -1,13 +1,16 @@
+# frozen_string_literal: true
+
 class InternalPriceController < ApplicationController
+  include ApplicationHelper
 
- def index
- 	@internal_price = InternalPrice.new
-  @marketing_price = MarketingPrice.new
-  @raw_file = RawFile.new
-  @internal_details = InternalPrice.all.page(params[:drug_page]).per(30)
- end
+  def index
+    @internal_price = InternalPrice.new
+    @marketing_price = MarketingPrice.new
+    @raw_file = RawFile.new
+    @internal_details = InternalPrice.all.map(&:health_system_name).uniq.compact
+  end
 
- def internal_file_bulk_upload
+  def internal_file_bulk_upload
     InternalPrice.process_file(internal_file_bulk_upload_file)
     flash[:success] = 'Internal File successfully uploaded'
     redirect_back(fallback_location: root_path)
@@ -24,7 +27,7 @@ class InternalPriceController < ApplicationController
   end
 
   def raw_file_bulk_upload_file
-    RawFile.open_spreadsheet(params[:raw_files][:file])
+    RawFile.open_spreadsheet(params[:raw_file][:file])
   end
 
   def marketing_price_bulk_upload
@@ -34,7 +37,20 @@ class InternalPriceController < ApplicationController
   end
 
   def marketing_price_bulk_upload_file
-    MarketingPrice.open_spreadsheet(params[:marketing_prices][:file])
+    MarketingPrice.open_spreadsheet(params[:marketing_price][:file])
   end
 
+  def all_contract_pharmacies
+    @contract_pharmacy = RawFile.where(health_system_name: params[:hospital_name]).all.map(&:rx_file_provider_name).uniq
+  end
+
+  def dashboard
+    @contract_pharmacy = RawFile.where(health_system_name: params[:hospital_name]).all.map(&:rx_file_provider_name).uniq
+  end
+
+  def reimbursement
+    @contract_pharmacy = RawFile.where(health_system_name: params[:hospital_name]).all.map(&:rx_file_provider_name).uniq
+  end
+
+  def each_contract_pharmacy; end
 end
