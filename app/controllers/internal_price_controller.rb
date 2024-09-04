@@ -7,6 +7,7 @@ class InternalPriceController < ApplicationController
     @internal_price = InternalPrice.new
     @marketing_price = MarketingPrice.new
     @raw_file = RawFile.new
+    @awp_price = AwpPrice.new
     @internal_details = InternalPrice.all.map(&:health_system_name).uniq.compact
   end
 
@@ -40,6 +41,16 @@ class InternalPriceController < ApplicationController
     MarketingPrice.open_spreadsheet(params[:marketing_price][:file])
   end
 
+  def awp_file_bulk_upload
+    AwpPrice.process_file(awp_file_bulk_upload_file)
+    flash[:success] = 'AWP Price File successfully uploaded'
+    redirect_back(fallback_location: root_path)
+  end
+
+  def awp_file_bulk_upload_file
+    AwpPrice.open_spreadsheet(params[:awp_price][:file])
+  end
+
   def all_contract_pharmacies
     @contract_pharmacy = RawFile.where(health_system_name: params[:hospital_name]).all.map(&:rx_file_provider_name).uniq
   end
@@ -52,5 +63,32 @@ class InternalPriceController < ApplicationController
     @contract_pharmacy = RawFile.where(health_system_name: params[:hospital_name]).all.map(&:rx_file_provider_name).uniq
   end
 
-  def each_contract_pharmacy; end
+  def reimbursement_each_contract_pharmacy
+    @contract_pharmacy_records = RawFile
+                                 .where(health_system_name: params[:hospital_name])
+                                 .where(rx_file_provider_name: params[:contract_pharmacy_name])
+                                 .where(matched_status: true)
+                                 .page(params[:drug_page])
+                                 .per(20)
+  end
+
+  def claim_management
+    @contract_pharmacy = RawFile.where(health_system_name: params[:hospital_name]).all.map(&:rx_file_provider_name).uniq
+  end
+
+  def claim_each_contract_pharmacy
+    @contract_pharmacy_records = RawFile
+                                 .where(health_system_name: params[:hospital_name])
+                                 .where(rx_file_provider_name: params[:contract_pharmacy_name])
+                                 .where(matched_status: true)
+                                 .page(params[:drug_page])
+                                 .per(10)
+  end
+
+  def update_claim_status
+    RawFile.where(ndc: params[:ndc]).update(claim_status: params[:claim])
+    MarketingPrice.where(ndc: params[:ndc]).update(claim_status: params[:claim])
+    InternalPrice.where(ndc: params[:ndc]).update(claim_status: params[:claim])
+    redirect_back(fallback_location: root_path)
+  end
 end
