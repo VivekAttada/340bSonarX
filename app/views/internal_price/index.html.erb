@@ -1,0 +1,53 @@
+<center>
+  <div style="width: 90%;">
+    <center>
+      <div style="margin-top: 50px;display: flex;">
+        <div style="margin-left: 10px; padding: 8px;border: 2px solid grey;">
+        <%= form_for @internal_price, url: internal_file_bulk_upload_path, method: :post, html: { multipart: true } do |f| %>
+          <%= f.file_field :file %>
+          <%= f.submit "Upload Internal Pharmacy File" %>
+        <% end %>
+      </div>
+      <div style="margin-left: 30px; padding: 8px;border: 2px solid grey;">
+        <%= form_for @marketing_price, url: marketing_file_bulk_upload_path, method: :post, html: { multipart: true } do |f| %>
+          <%= f.file_field :file %>
+          <%= f.submit "Upload Market Price File" %>
+        <% end %>
+      </div>
+      <div style="margin-left: 30px; padding: 8px;border: 2px solid grey;">
+        <%= form_for @raw_file, url: raw_file_bulk_upload_path, method: :post, html: { multipart: true } do |f| %>
+          <%= f.file_field :file %>
+          <%= f.submit "Upload Raw File" %>
+        <% end %>
+      </div>
+      <div style="margin-left: 30px; padding: 8px;border: 2px solid grey;">
+        <%= form_for @awp_price, url: awp_file_bulk_upload_path, method: :post, html: { multipart: true } do |f| %>
+          <%= f.file_field :file %>
+          <%= f.submit "Upload AWP File" %>
+        <% end %>
+      </div>
+      </div><br><br>
+    </center>
+    <table style="border: 2px solid black;width: 100%;">
+      <thead>
+        <tr>
+          <th style="text-align: start">Health System Name</th>
+          <th style="text-align: start">Total Claims</th>
+          <th style="text-align: start">Total Revenue</th>
+          <th style="text-align: start">Total Reimbursement spread</th>
+          <th style="text-align: start">Action</th>
+        </tr>
+      <tbody>
+        <% @internal_details.each do |details| %>
+          <tr>
+            <td style="padding: 15px;"><%= details %> </td>
+            <td><%= '$' + number_with_delimiter(total_health_system_claims(details)) %></td>
+            <td><%= '$' + number_with_delimiter(total_revenue(details)) %></td>
+            <td><%= '$' + number_with_delimiter(total_reimbursement(details)) %></td>
+            <td class="p-[20px] font-semibold text-blue-500"><%= link_to all_contract_pharmacies_path(hospital_name: details) do %> View <% end %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</center>
