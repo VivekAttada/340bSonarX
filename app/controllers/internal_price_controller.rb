@@ -2,6 +2,7 @@
 
 class InternalPriceController < ApplicationController
   include ApplicationHelper
+    skip_before_action :verify_authenticity_token, only: [:awp_file_bulk_upload, :internal_file_bulk_upload, :raw_file_bulk_upload, :marketing_price_bulk_upload]
 
   def index
     @internal_price = InternalPrice.new
@@ -11,10 +12,28 @@ class InternalPriceController < ApplicationController
     @internal_details = InternalPrice.all.map(&:health_system_name).uniq.compact
   end
 
+
+  def index
+    health_system_names = InternalPrice.pluck(:health_system_name).uniq.compact
+
+    data = health_system_names.map do |name|
+      {
+        health_system_name: name,
+        total_health_system_claims: total_health_system_claims(name),
+        total_revenue: total_revenue(name),
+        total_reimbursement: total_reimbursement(name)
+      }
+    end
+    render json: data, status: :ok
+  end
+
+
   def internal_file_bulk_upload
-    InternalPrice.process_file(internal_file_bulk_upload_file)
-    flash[:success] = 'Internal File successfully uploaded'
-    redirect_back(fallback_location: root_path)
+    if InternalPrice.process_file(internal_file_bulk_upload_file)
+      render json: { message: 'Internal File successfully uploaded', status: :success }, status: :ok
+    else
+      render json: { error: 'No file provided', status: :bad_request }, status: :bad_request
+    end
   end
 
   def internal_file_bulk_upload_file
@@ -22,9 +41,11 @@ class InternalPriceController < ApplicationController
   end
 
   def raw_file_bulk_upload
-    RawFile.process_file(raw_file_bulk_upload_file)
-    flash[:success] = 'Raw File successfully uploaded'
-    redirect_back(fallback_location: root_path)
+    if RawFile.process_file(raw_file_bulk_upload_file)
+      render json: { message: 'Raw File successfully uploaded', status: :success }, status: :ok
+    else
+      render json: { error: 'No file provided', status: :bad_request }, status: :bad_request
+    end
   end
 
   def raw_file_bulk_upload_file
@@ -32,9 +53,11 @@ class InternalPriceController < ApplicationController
   end
 
   def marketing_price_bulk_upload
-    MarketingPrice.process_file(marketing_price_bulk_upload_file)
-    flash[:success] = 'Market Price File successfully uploaded'
-    redirect_back(fallback_location: root_path)
+    if MarketingPrice.process_file(marketing_price_bulk_upload_file)
+      render json: { message: 'Market Price File successfully uploaded', status: :success }, status: :ok
+    else
+      render json: { error: 'No file provided', status: :bad_request }, status: :bad_request
+    end
   end
 
   def marketing_price_bulk_upload_file
@@ -42,9 +65,12 @@ class InternalPriceController < ApplicationController
   end
 
   def awp_file_bulk_upload
-    AwpPrice.process_file(awp_file_bulk_upload_file)
-    flash[:success] = 'AWP Price File successfully uploaded'
-    redirect_back(fallback_location: root_path)
+    if params[:awp_price].present? && params[:awp_price][:file].present?
+      AwpPrice.process_file(awp_file_bulk_upload_file)
+      render json: { message: 'AWP Price File successfully uploaded', status: :success }, status: :ok
+    else
+      render json: { error: 'No file provided', status: :bad_request }, status: :bad_request
+    end
   end
 
   def awp_file_bulk_upload_file
@@ -52,15 +78,54 @@ class InternalPriceController < ApplicationController
   end
 
   def all_contract_pharmacies
-    @contract_pharmacy = RawFile.where(health_system_name: params[:hospital_name]).all.map(&:rx_file_provider_name).uniq
+    @contract_pharmacy = RawFile.where(health_system_name: params[:hospital_name])
+                                .all.map(&:rx_file_provider_name).uniq
+
+    contract_pharmacy_details = @contract_pharmacy.map do |details|
+      {
+        provider_name: details,
+        claim_count: claim_count(details),
+        revenue: '$' + contract_pharmacies_revenue(details).to_s,
+        reimbursement: '$' + contract_pharmacy_reimbursement(details).to_f.round(0).to_s
+      }
+    end
+
+    render json: contract_pharmacy_details
   end
 
   def dashboard
-    @contract_pharmacy = RawFile.where(health_system_name: params[:hospital_name]).all.map(&:rx_file_provider_name).uniq
+    @contract_pharmacy = RawFile.where(health_system_name: params[:hospital_name])
+                                .all.map(&:rx_file_provider_name).uniq
+
+    contract_pharmacy_details = @contract_pharmacy.map do |details|
+      {
+        provider_name: details,
+        claim_count: claim_count(details),
+        correctly_paid_claim: correctly_paid_claim(details),
+        under_paid_claim: under_paid_claim(details),
+        over_paid_claim: over_paid_claim(details)
+      }
+    end
+
+    render json: contract_pharmacy_details
   end
 
+
   def reimbursement
-    @contract_pharmacy = RawFile.where(health_system_name: params[:hospital_name]).all.map(&:rx_file_provider_name).uniq
+    @contract_pharmacy = RawFile.where(health_system_name: params[:hospital_name])
+                                .all.map(&:rx_file_provider_name).uniq
+
+    contract_pharmacy_details = @contract_pharmacy.map do |details|
+      {
+        provider_name: details,
+        claim_count: claim_count(details),
+        correctly_paid_claim: correctly_paid_claim(details),
+        awp: contract_pharmacy_awp(details).to_f.round(2),
+        under_paid_claim: under_paid_claim(details),
+      }
+    end
+
+    render json: contract_pharmacy_details
   end
 
   def reimbursement_each_contract_pharmacy
@@ -70,10 +135,31 @@ class InternalPriceController < ApplicationController
                                  .where(matched_status: true)
                                  .page(params[:drug_page])
                                  .per(20)
+
+    contract_pharmacy_details = @contract_pharmacy_records.map do |details|
+      {
+        provider_name: details.rx_file_provider_name,
+        ndc: details.ndc,
+        uniq_contract_pharmacy: uniq_contract_pharmacy(details.ndc),
+        paid_status: details.paid_status
+      }
+    end
+
+    render json: contract_pharmacy_details
   end
 
   def claim_management
-    @contract_pharmacy = RawFile.where(health_system_name: params[:hospital_name]).all.map(&:rx_file_provider_name).uniq
+    @contract_pharmacy = RawFile.where(health_system_name: params[:hospital_name])
+                                .all.map(&:rx_file_provider_name).uniq
+
+    contract_pharmacy_details = @contract_pharmacy.map do |details|
+      {
+        provider_name: details,
+        claim_count: claim_count(details),
+      }
+    end
+
+    render json: contract_pharmacy_details
   end
 
   def claim_each_contract_pharmacy
@@ -83,7 +169,18 @@ class InternalPriceController < ApplicationController
                                  .where(matched_status: true)
                                  .page(params[:drug_page])
                                  .per(10)
+
+    contract_pharmacy_details = @contract_pharmacy_records.map do |details|
+      {
+        provider_name: details.rx_file_provider_name,
+        ndc: details.ndc,
+        claim_count: uniq_contract_pharmacy_claim(details.ndc)
+      }
+    end
+
+    render json: contract_pharmacy_details
   end
+
 
   def update_claim_status
     RawFile.where(ndc: params[:ndc]).update(claim_status: params[:claim])
