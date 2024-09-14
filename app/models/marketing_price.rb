@@ -13,25 +13,30 @@ class MarketingPrice < ApplicationRecord
 
   def self.process_file(parsed_file)
     batch = []
-    batch_size = 1000
+    batch_size = 10000
     total_rows = 0
     all_sheets = parsed_file.sheets
+
     all_sheets.each do |sheet|
       parsed_file.default_sheet = sheet
+
       parsed_file.each_with_index do |row, i|
         if i.zero?
           build_headers(row)
         else
           batch << row
+          if batch.size >= batch_size
+            process_row(batch)
+            batch = []
+          end
+
+          total_rows = i
         end
-        if batch.size >= batch_size
-          process_row(batch)
-          batch = []
-        end
-        total_rows = i
       end
+
+      process_row(batch)
     end
-    process_row(batch)
+
     total_rows
   end
 
@@ -51,7 +56,7 @@ class MarketingPrice < ApplicationRecord
   def self.process_row(batch)
     return unless batch.present?
 
-    Delayed::Job.enqueue MarketFileImportJob.new(batch)
+    MarketFileImportJob.perform_async(batch)
   end
 
   def self.import_data(headers, batch)

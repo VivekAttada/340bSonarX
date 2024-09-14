@@ -12,28 +12,33 @@ class AwpPrice < ApplicationRecord
   end
 
   def self.process_file(parsed_file)
-    batch = []
-    batch_size = 1000
-    total_rows = 0
-    all_sheets = parsed_file.sheets
-    all_sheets.each do |sheet|
-      parsed_file.default_sheet = sheet
-      parsed_file.each_with_index do |row, i|
-        if i.zero?
-          build_headers(row)
-        else
-          batch << row
-        end
+  batch = []
+  batch_size = 10000
+  total_rows = 0
+  all_sheets = parsed_file.sheets
+
+  all_sheets.each do |sheet|
+    parsed_file.default_sheet = sheet
+
+    parsed_file.each_with_index do |row, i|
+      if i.zero?
+        build_headers(row)
+      else
+        batch << row
         if batch.size >= batch_size
           process_row(batch)
           batch = []
         end
+
         total_rows = i
       end
     end
+
     process_row(batch)
-    total_rows
   end
+
+  total_rows
+end
 
   def self.build_headers(row)
     headers = {}
@@ -51,7 +56,7 @@ class AwpPrice < ApplicationRecord
   def self.process_row(batch)
     return unless batch.present?
 
-    Delayed::Job.enqueue AwpFileImportJob.new(batch)
+    AwpFileImportJob.perform_async(batch)
   end
 
   def self.import_data(headers, batch)

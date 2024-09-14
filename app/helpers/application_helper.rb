@@ -2,7 +2,7 @@
 
 module ApplicationHelper
   def total_health_system_claims(details)
-    RawFile.where(health_system_name: details).where(matched_status: true).where.not(paid_status: nil).sum(:program_revenue)
+    RawFile.where(health_system_name: details).where(matched_status: true).where.not(paid_status: nil).count
   end
 
   def total_revenue(details)

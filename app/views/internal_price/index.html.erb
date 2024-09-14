@@ -28,6 +28,12 @@
       </div>
       </div><br><br>
     </center>
+    <div style="margin-left: 30px; padding: 8px;border: 2px solid grey;">
+         <%= form_for @standard_reference_file, url: standard_reference_price_file_bulk_upload_path, method: :post, html: { multipart: true } do |f| %>
+          <%= f.file_field :file %>
+          <%= f.submit "Upload Standard Reference Price File" %>
+        <% end %>
+      </div><br><br>
     <table style="border: 2px solid black;width: 100%;">
       <thead>
         <tr>
@@ -40,11 +46,13 @@
       <tbody>
         <% @internal_details.each do |details| %>
           <tr>
-            <td style="padding: 15px;"><%= details %> </td>
-            <td><%= '$' + number_with_delimiter(total_health_system_claims(details)) %></td>
-            <td><%= '$' + number_with_delimiter(total_revenue(details)) %></td>
-            <td><%= '$' + number_with_delimiter(total_reimbursement(details)) %></td>
-            <td class="p-[20px] font-semibold text-blue-500"><%= link_to all_contract_pharmacies_path(hospital_name: details) do %> View <% end %></td>
+            <% if details.present? %>
+              <td style="padding: 15px;"><%= details %> </td>
+              <td><%= total_health_system_claims(details) %></td>
+              <td><%= '$' + number_with_delimiter(total_revenue(details)) %></td>
+              <td><%= '$' + number_with_delimiter(total_reimbursement(details)) %></td>
+              <td class="p-[20px] font-semibold text-blue-500"><%= link_to all_contract_pharmacies_path(hospital_name: details) do %> View <% end %></td>
+              <% end %>
           </tr>
         <% end %>
       </tbody>

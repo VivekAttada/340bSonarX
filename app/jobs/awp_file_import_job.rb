@@ -1,14 +1,12 @@
 # frozen_string_literal: true
 
 class AwpFileImportJob
-  def initialize(batch)
-    @batch = batch
-  end
+  include Sidekiq::Worker
 
-  def perform
-    return unless @batch.present?
+  def perform(batch)
+    return unless batch.present?
 
-    AwpPrice.import_data(expected_headers, @batch)
+    AwpPrice.import_data(expected_headers, batch)
   end
 
   private

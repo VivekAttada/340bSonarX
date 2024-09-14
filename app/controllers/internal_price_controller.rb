@@ -8,6 +8,7 @@ class InternalPriceController < ApplicationController
     @marketing_price = MarketingPrice.new
     @raw_file = RawFile.new
     @awp_price = AwpPrice.new
+    @standard_reference_file = StandardReferencePrice.new
     @internal_details = InternalPrice.all.map(&:health_system_name).uniq.compact
   end
 
@@ -49,6 +50,16 @@ class InternalPriceController < ApplicationController
 
   def awp_file_bulk_upload_file
     AwpPrice.open_spreadsheet(params[:awp_price][:file])
+  end
+
+  def standard_reference_price_file_bulk_upload
+    StandardReferencePrice.process_file(standard_reference_price_bulk_upload_file)
+    flash[:success] = 'Standard Reference Price File successfully uploaded'
+    redirect_back(fallback_location: root_path)
+  end
+
+  def standard_reference_price_bulk_upload_file
+    StandardReferencePrice.open_spreadsheet(params[:standard_reference_price][:file])
   end
 
   def all_contract_pharmacies
