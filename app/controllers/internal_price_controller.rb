@@ -2,61 +2,116 @@
 
 class InternalPriceController < ApplicationController
   include ApplicationHelper
-  skip_before_action :verify_authenticity_token, only: [:awp_file_bulk_upload, :internal_file_bulk_upload, :raw_file_bulk_upload, :marketing_price_bulk_upload, :update_claim_status]
+  skip_before_action :verify_authenticity_token, only: [:awp_file_bulk_upload, :internal_file_bulk_upload, :raw_file_bulk_upload, :marketing_price_bulk_upload, :update_claim_status, :standard_reference_price_file_bulk_upload]
+
+  # def index
+  #   @internal_price = InternalPrice.new
+  #   @marketing_price = MarketingPrice.new
+  #   @raw_file = RawFile.new
+  #   @awp_price = AwpPrice.new
+  #   @standard_reference_file = StandardReferencePrice.new
+  #   @internal_details = InternalPrice.all.map(&:health_system_name).uniq.compact
+  # end
 
   def index
-    @internal_price = InternalPrice.new
-    @marketing_price = MarketingPrice.new
-    @raw_file = RawFile.new
-    @awp_price = AwpPrice.new
-    @standard_reference_file = StandardReferencePrice.new
-    @internal_details = InternalPrice.all.map(&:health_system_name).uniq.compact
+    health_system_names = InternalPrice.pluck(:health_system_name).uniq.compact
+
+    data = health_system_names.map do |name|
+      {
+        health_system_name: name,
+        total_health_system_claims: total_health_system_claims(name),
+        total_revenue: total_revenue(name),
+        total_reimbursement: total_reimbursement(name)
+      }
+    end
+    render json: data, status: :ok
   end
 
+  # def internal_file_bulk_upload
+  #   InternalPrice.process_file(internal_file_bulk_upload_file)
+  #   flash[:success] = 'Internal File successfully uploaded'
+  #   redirect_back(fallback_location: root_path)
+  # end
+
   def internal_file_bulk_upload
-    InternalPrice.process_file(internal_file_bulk_upload_file)
-    flash[:success] = 'Internal File successfully uploaded'
-    redirect_back(fallback_location: root_path)
+    if InternalPrice.process_file(internal_file_bulk_upload_file)
+      render json: { message: 'Internal File successfully uploaded', status: :success }, status: :ok
+    else
+      render json: { error: 'No file provided', status: :bad_request }, status: :bad_request
+    end
   end
 
   def internal_file_bulk_upload_file
     InternalPrice.open_spreadsheet(params[:internal_price][:file])
   end
 
+  # def raw_file_bulk_upload
+  #   RawFile.process_file(raw_file_bulk_upload_file)
+  #   flash[:success] = 'Raw File successfully uploaded'
+  #   redirect_back(fallback_location: root_path)
+  # end
+
   def raw_file_bulk_upload
-    RawFile.process_file(raw_file_bulk_upload_file)
-    flash[:success] = 'Raw File successfully uploaded'
-    redirect_back(fallback_location: root_path)
+    if RawFile.process_file(raw_file_bulk_upload_file)
+      render json: { message: 'Raw File successfully uploaded', status: :success }, status: :ok
+    else
+      render json: { error: 'No file provided', status: :bad_request }, status: :bad_request
+    end
   end
 
   def raw_file_bulk_upload_file
     RawFile.open_spreadsheet(params[:raw_file][:file])
   end
 
+  # def marketing_price_bulk_upload
+  #   MarketingPrice.process_file(marketing_price_bulk_upload_file)
+  #   flash[:success] = 'Market Price File successfully uploaded'
+  #   redirect_back(fallback_location: root_path)
+  # end
+
   def marketing_price_bulk_upload
-    MarketingPrice.process_file(marketing_price_bulk_upload_file)
-    flash[:success] = 'Market Price File successfully uploaded'
-    redirect_back(fallback_location: root_path)
+    if MarketingPrice.process_file(marketing_price_bulk_upload_file)
+      render json: { message: 'Market Price File successfully uploaded', status: :success }, status: :ok
+    else
+      render json: { error: 'No file provided', status: :bad_request }, status: :bad_request
+    end
   end
 
   def marketing_price_bulk_upload_file
     MarketingPrice.open_spreadsheet(params[:marketing_price][:file])
   end
 
+  # def awp_file_bulk_upload
+  #   AwpPrice.process_file(awp_file_bulk_upload_file)
+  #   flash[:success] = 'AWP Price File successfully uploaded'
+  #   redirect_back(fallback_location: root_path)
+  # end
+  
   def awp_file_bulk_upload
-    AwpPrice.process_file(awp_file_bulk_upload_file)
-    flash[:success] = 'AWP Price File successfully uploaded'
-    redirect_back(fallback_location: root_path)
+    if params[:awp_price].present? && params[:awp_price][:file].present?
+      AwpPrice.process_file(awp_file_bulk_upload_file)
+      render json: { message: 'AWP Price File successfully uploaded', status: :success }, status: :ok
+    else
+      render json: { error: 'No file provided', status: :bad_request }, status: :bad_request
+    end
   end
 
   def awp_file_bulk_upload_file
     AwpPrice.open_spreadsheet(params[:awp_price][:file])
   end
 
+  # def standard_reference_price_file_bulk_upload
+  #   StandardReferencePrice.process_file(standard_reference_price_bulk_upload_file)
+  #   flash[:success] = 'Standard Reference Price File successfully uploaded'
+  #   redirect_back(fallback_location: root_path)
+  # end
+
   def standard_reference_price_file_bulk_upload
-    StandardReferencePrice.process_file(standard_reference_price_bulk_upload_file)
-    flash[:success] = 'Standard Reference Price File successfully uploaded'
-    redirect_back(fallback_location: root_path)
+    if StandardReferencePrice.process_file(standard_reference_price_bulk_upload_file)
+      render json: { message: 'Market Price File successfully uploaded', status: :success }, status: :ok
+    else
+      render json: { error: 'No file provided', status: :bad_request }, status: :bad_request
+    end
   end
 
   def standard_reference_price_bulk_upload_file
