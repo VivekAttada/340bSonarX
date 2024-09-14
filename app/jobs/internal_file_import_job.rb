@@ -9,7 +9,6 @@ class InternalFileImportJob
     return unless @batch.present?
 
     InternalPrice.import_data(expected_headers, @batch)
-    Delayed::Job.enqueue MatchNdcCodeJob.new
   end
 
   private
