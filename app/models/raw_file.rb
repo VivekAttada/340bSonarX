@@ -11,53 +11,56 @@ class RawFile < ApplicationRecord
     end
   end
 
- def self.process_file(parsed_file)
-  batch = []
-  batch_size = 10000
-  total_rows = 0
-  all_sheets = parsed_file.sheets
+  def self.process_file(parsed_file)
+    batch = []
+    batch_size = 10000
+    total_rows = 0
+    all_sheets = parsed_file.sheets
 
-  all_sheets.each do |sheet|
-    parsed_file.default_sheet = sheet
+    all_sheets.each do |sheet|
+      parsed_file.default_sheet = sheet
 
-    parsed_file.each_with_index do |row, i|
-      if i.zero?
-        build_headers(row)
-      else
-        batch << row
-        if batch.size >= batch_size
-          process_row(batch)
-          batch = []
+      parsed_file.each_with_index do |row, i|
+        if i.zero?
+          build_headers(row)
+        else
+          batch << row
+          if batch.size >= batch_size
+            process_row(batch)
+            batch = []
+          end
+
+          total_rows = i
         end
-
-        total_rows = i
       end
+
+      process_row(batch)
     end
 
-    process_row(batch)
+    total_rows
   end
 
-  total_rows
-end
+  def self.build_headers(row)
+    headers = {}
+    row.each_with_index { |x, i| headers[x] = i }
+    missing_headers = expected_headers - headers.keys
+    raise "Missing required header entry '#{missing_headers[0]}'" unless missing_headers.empty?
 
-def self.build_headers(row)
-  headers = {}
-  row.each_with_index { |x, i| headers[x] = i }
-  missing_headers = expected_headers - headers.keys
-  raise "Missing required header entry '#{missing_headers[0]}'" unless missing_headers.empty?
+    headers
+  end
 
-  headers
-end
+  def self.expected_headers
+    %w[contract_pharmacy_name ndc program_revenue quantity pharmacy_npi rx_file_provider_name
+       processed_date three_forty_b_id rx
+       drug_name manufacturer drug_class packages_dispensed mdq rx_written_date
+       dispensed_date fill days_supply patient_paid admin_fee dispensing_fee health_system_name]
+  end
 
-def self.expected_headers
-  %w[contract_pharmacy_name ndc program_revenue quantity pharmacy_npi rx_file_provider_name health_system_name]
-end
+  def self.process_row(batch)
+    return unless batch.present?
 
-def self.process_row(batch)
-  return unless batch.present?
-
-  RawFileImportJob.perform_async(batch)
-end
+    RawFileImportJob.perform_async(batch)
+  end
 
 
   def self.import_data(headers, batch)
@@ -70,12 +73,30 @@ end
     end
   end
 
-  def self.update_paid_status
-    RawFile.where(matched_status: true).find_in_batches(batch_size: 1000) do |batch|
-      batch.each do |record|
+  def self.search(search_term, hospital_name, sort)
+    query = if search_term.present? && hospital_name.present?
+              where('rx_file_provider_name ILIKE :search OR health_system_name ILIKE :search',
+                    search: "%#{search_term.strip}%").where(health_system_name: hospital_name)
+            elsif search_term.present?
+              where('rx_file_provider_name ILIKE :search OR health_system_name ILIKE :search',
+                    search: "%#{search_term.strip}%")
+            elsif hospital_name.present?
+              where(health_system_name: hospital_name).where(matched_status: true)
+            else
+              all
+            end
 
-        Delayed::Job.enqueue UpdatePaidStatusJob.new(record.id)
+    if sort.present?
+      case sort
+      when "four_matched"
+        query = query.where(matched_ndc_bin_pcn_state: true)
+      when "three_matched"
+        query = query.where(matched_ndc_bin_pcn: true)
+      when "two_matched"
+        query = query.where(matched_ndc_bin: true)
       end
+    else
+     query
     end
   end
 end

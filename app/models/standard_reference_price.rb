@@ -1,18 +1,18 @@
 
-	# frozen_string_literal: true
+# frozen_string_literal: true
 
-	class StandardReferencePrice < ApplicationRecord
-	  def self.open_spreadsheet(file)
-	    case File.extname(file.original_filename)
-	    when '.csv' then Roo::CSV.new(file.path)
-	    when '.xls' then Roo::Excel.new(file.path)
-	    when '.xlsx' then Roo::Excelx.new(file.path)
-	    else
-	      raise "Unknown file type: #{file.original_filename}"
-	    end
-	  end
+class StandardReferencePrice < ApplicationRecord
+  def self.open_spreadsheet(file)
+    case File.extname(file.original_filename)
+    when '.csv' then Roo::CSV.new(file.path)
+    when '.xls' then Roo::Excel.new(file.path)
+    when '.xlsx' then Roo::Excelx.new(file.path)
+    else
+      raise "Unknown file type: #{file.original_filename}"
+    end
+  end
 
-	 def self.process_file(parsed_file)
+    def self.process_file(parsed_file)
 	  batch = []
 	  batch_size = 10000
 	  total_rows = 0
@@ -39,7 +39,7 @@
 	  end
 
 	  total_rows
-	end
+    end
 
 	def self.build_headers(row)
 	  headers = {}
@@ -61,13 +61,13 @@
 	end
 
 
-	  def self.import_data(headers, batch)
-	    header_mapping = headers.map(&:downcase).map(&:to_sym)
+	def self.import_data(headers, batch)
+	  header_mapping = headers.map(&:downcase).map(&:to_sym)
 
-	    batch.each do |data_row|
-	      attributes = header_mapping.zip(data_row).to_h
-	      record = new(attributes)
-	      record.save!
-	    end
+	  batch.each do |data_row|
+	    attributes = header_mapping.zip(data_row).to_h
+	    record = new(attributes)
+	    record.save!
 	  end
 	end
+end

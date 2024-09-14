@@ -53,7 +53,7 @@ class InternalPrice < ApplicationRecord
   end
 
   def self.expected_headers
-    %w[ndc bin pcn group state reimbursement_total quantity_dispensed health_system_name]
+    %w[ndc bin pcn group state reimbursement_total quantity_dispensed reimbursement_per_quantity_dispensed health_system_name]
   end
 
   def self.process_row(batch)

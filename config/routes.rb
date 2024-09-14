@@ -22,4 +22,7 @@ Rails.application.routes.draw do
                                       as: 'claim_each_contract_pharmacy'
 
   post 'update_claim_status', to: 'internal_price#update_claim_status', as: 'update_claim_status'
+  get 'marketing_price_sample_file', to: 'internal_price#marketing_price_sample_file'
+  get 'internal_price_sample_file', to: 'internal_price#internal_price_sample_file'
+  get 'standard_reference_price_sample_file', to: 'internal_price#standard_reference_price_sample_file'
 end

@@ -12,6 +12,6 @@ class MarketFileImportJob
   private
 
   def expected_headers
-    %w[ndc bin pcn group state claim_cost quantity_dispensed health_system_name]
+    %w[ndc bin pcn group state claim_cost quantity_dispensed reimbursement_per_quantity_dispensed health_system_name]
   end
 end

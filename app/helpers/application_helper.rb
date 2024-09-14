@@ -14,54 +14,261 @@ module ApplicationHelper
     AwpPrice.where(ndc: ndc).sum(:awp_price)
   end
 
-  def contract_pharmacy_reimbursement(details)
-    ndc = RawFile.where(rx_file_provider_name: details, matched_status: true).all.map(&:ndc)
+  # def contract_pharmacy_reimbursement(details)
+  #   ndc = RawFile.where(rx_file_provider_name: details, matched_status: true).all.map(&:ndc)
+  #   AwpPrice.where(ndc: ndc).sum(:awp_price)
+  # end
+
+  def contract_pharmacy_reimbursement(details, sort)
+    query = RawFile.where(rx_file_provider_name: details).where.not(paid_status: nil)
+
+    if sort.present?
+      case sort
+      when "four_matched"
+        query = query.where(matched_ndc_bin_pcn_state: true)
+      when "three_matched"
+        query = query.where(matched_ndc_bin_pcn: true)
+      when "two_matched"
+        query = query.where(matched_ndc_bin: true)
+      end
+    else
+      query = query.where(matched_status: true)
+    end
+
+    ndc = query.all.map(&:ndc)
     AwpPrice.where(ndc: ndc).sum(:awp_price)
   end
 
-  def contract_pharmacies_revenue(details)
-    RawFile.where(health_system_name: params[:hospital_name], matched_status: true, rx_file_provider_name: details)
-           .sum(:program_revenue)
+
+  # def contract_pharmacies_revenue(details)
+  #   RawFile.where(health_system_name: params[:hospital_name], matched_status: true, rx_file_provider_name: details)
+  #          .sum(:program_revenue)
+  # end
+
+  def contract_pharmacies_revenue(details, sort)
+    query = RawFile.where(health_system_name: params[:hospital_name],
+                          rx_file_provider_name: details)
+
+    if sort.present?
+      case sort
+      when "four_matched"
+        query = query.where(matched_ndc_bin_pcn_state: true)
+      when "three_matched"
+        query = query.where(matched_ndc_bin_pcn: true)
+      when "two_matched"
+        query = query.where(matched_ndc_bin: true)
+      end
+    else
+      query = query.where(matched_status: true)
+    end
+
+    query.sum(:program_revenue)
   end
 
-  def claim_count(details)
-    calculate_revenue(details, not_paid_status: false)
+  def claim_count(details, sort)
+    if sort.present?
+      if sort = "four_matched"
+        RawFile.where(rx_file_provider_name: details,
+                              matched_ndc_bin_pcn_state: true).where.not(paid_status: nil).count
+      elsif sort = 'three_matched'
+        RawFile.where(rx_file_provider_name: details,
+                              matched_ndc_bin_pcn: true).where.not(paid_status: nil).count
+      elsif sort = 'two_matched'
+        RawFile.where(rx_file_provider_name: details,
+                              matched_ndc_bin: true).where.not(paid_status: nil).count
+      end
+    else
+       RawFile.where(rx_file_provider_name: details,
+                              matched_status: true).where.not(paid_status: nil).count
+    end
   end
 
-  def correctly_paid_claim(details)
-    calculate_revenue(details, paid_status: 'correctly paid')
+  # def claim_cost(details)
+  #   RawFile.where(rx_file_provider_name: details,
+  #                         matched_status: true).where.not(paid_status: nil).count
+  # end
+
+  def claim_cost(details, sort)
+    query = RawFile.where(rx_file_provider_name: details).where.not(paid_status: nil)
+
+    if sort.present?
+      case sort
+      when "four_matched"
+        query = query.where(matched_ndc_bin_pcn_state: true)
+      when "three_matched"
+        query = query.where(matched_ndc_bin_pcn: true)
+      when "two_matched"
+        query = query.where(matched_ndc_bin: true)
+      end
+    else
+      query = query.where(matched_status: true)
+    end
+
+    query.count
   end
 
-  def over_paid_claim(details)
-    calculate_revenue(details, paid_status: 'over paid')
+
+  # def correctly_paid_claim(details)
+  #   RawFile.where(health_system_name: params[:hospital_name], rx_file_provider_name: details,
+  #                         matched_status: true, paid_status: 'correctly paid').sum(:program_revenue).to_i
+  # end
+
+  def correctly_paid_claim(details, sort = nil)
+    query = RawFile.where(health_system_name: params[:hospital_name],
+                          rx_file_provider_name: details,
+                          paid_status: 'correctly paid')
+
+    if sort.present?
+      case sort
+      when "four_matched"
+        query = query.where(matched_ndc_bin_pcn_state: true)
+      when "three_matched"
+        query = query.where(matched_ndc_bin_pcn: true)
+      when "two_matched"
+        query = query.where(matched_ndc_bin: true)
+      end
+    else
+      query = query.where(matched_status: true)
+    end
+
+    query.sum(:program_revenue).to_i
   end
 
-  def contract_pharmacy_awp(details)
-    all_records = RawFile.where(rx_file_provider_name: details, matched_status: true).map(&:ndc)
+
+  # def over_paid_claim(details)
+  #   calculate_revenue(details, paid_status: 'over paid')
+  # end
+
+  def over_paid_claim(details, sort)
+    query = RawFile.where(health_system_name: params[:hospital_name],
+                          rx_file_provider_name: details,
+                          paid_status: 'over paid')
+
+    if sort.present?
+      case sort
+      when "four_matched"
+        query = query.where(matched_ndc_bin_pcn_state: true)
+      when "three_matched"
+        query = query.where(matched_ndc_bin_pcn: true)
+      when "two_matched"
+        query = query.where(matched_ndc_bin: true)
+      end
+    else
+      query = query.where(matched_status: true)
+    end
+
+    query.sum(:program_revenue).to_i
+  end
+
+
+  # def contract_pharmacy_awp(details)
+  #   all_records = RawFile.where(rx_file_provider_name: details, matched_status: true).map(&:ndc)
+  #   AwpPrice.where(ndc: all_records).sum(:awp_price)
+  # end
+
+  def contract_pharmacy_awp(details, sort)
+    query = RawFile.where(rx_file_provider_name: details)
+    if sort.present?
+      case sort
+      when "four_matched"
+        query = query.where(matched_ndc_bin_pcn_state: true)
+      when "three_matched"
+        query = query.where(matched_ndc_bin_pcn: true)
+      when "two_matched"
+        query = query.where(matched_ndc_bin: true)
+      end
+    else
+      query = query.where(matched_status: true)
+    end
+
+    all_records = query.map(&:ndc)
     AwpPrice.where(ndc: all_records).sum(:awp_price)
   end
 
-  def under_paid_claim(details)
-    calculate_revenue(details, paid_status: 'under paid')
+
+  # def under_paid_claim(details)
+  #   calculate_revenue(details, paid_status: 'under paid')
+  # end
+
+  def under_paid_claim(details, sort)
+    query = RawFile.where(health_system_name: params[:hospital_name],
+                          rx_file_provider_name: details,
+                          paid_status: 'under paid')
+
+    if sort.present?
+      case sort
+      when "four_matched"
+        query = query.where(matched_ndc_bin_pcn_state: true)
+      when "three_matched"
+        query = query.where(matched_ndc_bin_pcn: true)
+      when "two_matched"
+        query = query.where(matched_ndc_bin: true)
+      end
+    else
+      query = query.where(matched_status: true)
+    end
+
+    query.sum(:program_revenue).to_i
   end
 
-  def uniq_contract_pharmacy(ndc_code)
-    AwpPrice.where(ndc: ndc_code).sum(:awp_price)
+  # def uniq_contract_pharmacy(ndc_code)
+  #   AwpPrice.where(ndc: ndc_code).sum(:awp_price)
+  # end
+
+  def uniq_contract_pharmacy(ndc_code, sort)
+    query = RawFile.where(ndc: ndc_code)
+
+    if sort.present?
+      case sort
+      when "four_matched"
+        query = query.where(matched_ndc_bin_pcn_state: true)
+      when "three_matched"
+        query = query.where(matched_ndc_bin_pcn: true)
+      when "two_matched"
+        query = query.where(matched_ndc_bin: true)
+      end
+    else
+      query = query.where(matched_status: true)
+    end
+
+    ndc_records = query.map(&:ndc)
+    AwpPrice.where(ndc: ndc_records).sum(:awp_price)
   end
 
-  def uniq_contract_pharmacy_claim(ndc_code)
-    RawFile.where(ndc: ndc_code).sum(:program_revenue)
+
+  # def uniq_contract_pharmacy_claim(ndc_code)
+  #   RawFile.where(ndc: ndc_code).sum(:program_revenue)
+  # end
+
+  def uniq_contract_pharmacy_claim(ndc_code, sort)
+    query = RawFile.where(ndc: ndc_code)
+
+    if sort.present?
+      case sort
+      when "four_matched"
+        query = query.where(matched_ndc_bin_pcn_state: true)
+      when "three_matched"
+        query = query.where(matched_ndc_bin_pcn: true)
+      when "two_matched"
+        query = query.where(matched_ndc_bin: true)
+      end
+    else
+      query = query.where(matched_status: true)
+    end
+
+    query.sum(:program_revenue)
   end
+
 
   private
 
-  def calculate_revenue(details, paid_status: nil, not_paid_status: true)
-    query = RawFile.where(health_system_name: params[:hospital_name], rx_file_provider_name: details,
-                          matched_status: true)
-    query = query.where(paid_status: paid_status) if paid_status
-    query = query.where.not(paid_status: nil) if not_paid_status
-    query.sum(:program_revenue).to_i
-  end
+  # def calculate_revenue(details, paid_status: nil, not_paid_status: true)
+  #   query = RawFile.where(health_system_name: params[:hospital_name], rx_file_provider_name: details,
+  #                         matched_status: true)
+  #   query = query.where(paid_status: paid_status) if paid_status
+  #   query = query.where.not(paid_status: nil) if not_paid_status
+  #   query.sum(:program_revenue).to_i
+  # end
 
   def flag_color(details)
     claim = details.claim_status
