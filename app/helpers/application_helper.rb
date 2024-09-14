@@ -25,11 +25,6 @@ module ApplicationHelper
   end
 
   def claim_count(details)
-    RawFile.where(health_system_name: params[:hospital_name], rx_file_provider_name: details,
-                          matched_status: true).where.not(paid_status: nil).count
-  end
-
-  def claim_amount(details)
     calculate_revenue(details, not_paid_status: false)
   end
 
