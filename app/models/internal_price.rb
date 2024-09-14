@@ -13,25 +13,33 @@ class InternalPrice < ApplicationRecord
 
   def self.process_file(parsed_file)
     batch = []
-    batch_size = 1000
+    batch_size = 10000
     total_rows = 0
     all_sheets = parsed_file.sheets
+
     all_sheets.each do |sheet|
       parsed_file.default_sheet = sheet
+
       parsed_file.each_with_index do |row, i|
         if i.zero?
           build_headers(row)
         else
           batch << row
+          if batch.size >= batch_size
+            process_row(batch)
+            batch = []
+          end
+
+          total_rows = i
         end
-        if batch.size >= batch_size
-          process_row(batch)
-          batch = []
-        end
-        total_rows = i
       end
+
+      process_row(batch) if batch.present?
     end
-    process_row(batch)
+
+
+    trigger_match_ndc_code_job if total_rows > 0
+
     total_rows
   end
 
@@ -45,13 +53,13 @@ class InternalPrice < ApplicationRecord
   end
 
   def self.expected_headers
-    %w[ndc bin pcn group state reimbursement_total quantity_dispensed transaction_date health_system_name]
+    %w[ndc bin pcn group state reimbursement_total quantity_dispensed health_system_name]
   end
 
   def self.process_row(batch)
     return unless batch.present?
 
-    Delayed::Job.enqueue InternalFileImportJob.new(batch)
+    InternalFileImportJob.perform_async(batch)
   end
 
   def self.import_data(headers, batch)
@@ -69,10 +77,14 @@ class InternalPrice < ApplicationRecord
     end
   end
 
-  def self.update_paid_status
-    matched_records = RawFile.where(matched_status: true).all.map(&:id)
-    matched_records.each do |viv|
-      Delayed::Job.enqueue UpdatePaidStatusJob.new(viv)
-    end
+  def self.trigger_match_ndc_code_job
+    MatchNdcCodeJob.perform_async
   end
+
+  # def self.update_paid_status
+  #   matched_records = RawFile.where(matched_status: true).all.map(&:id)
+  #   matched_records.each do |viv|
+  #     Delayed::Job.enqueue UpdatePaidStatusJob.new(viv)
+  #   end
+  # end
 end

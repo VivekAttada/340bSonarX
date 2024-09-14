@@ -1,20 +1,20 @@
 # frozen_string_literal: true
-
 class InternalFileImportJob
-  def initialize(batch)
-    @batch = batch
-  end
+  include Sidekiq::Worker
 
-  def perform
-    return unless @batch.present?
+  def perform(batch)
+    return unless batch.present?
 
-    InternalPrice.import_data(expected_headers, @batch)
-    Delayed::Job.enqueue MatchNdcCodeJob.new
+    InternalPrice.import_data(expected_headers, batch)
   end
 
   private
 
   def expected_headers
-    %w[ndc bin pcn group state reimbursement_total quantity_dispensed transaction_date health_system_name]
+    %w[ndc bin pcn group state reimbursement_total quantity_dispensed health_system_name]
+  end
+
+  def batch_complete?(batch)
+    batch.size == 10000
   end
 end

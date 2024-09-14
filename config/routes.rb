@@ -1,12 +1,15 @@
 # frozen_string_literal: true
+  require 'sidekiq/web'
 
 Rails.application.routes.draw do
+  mount Sidekiq::Web => '/sidekiq'
   root to: 'internal_price#index'
 
   post 'internal_file_bulk_upload', to: 'internal_price#internal_file_bulk_upload', as: 'internal_file_bulk_upload'
   post 'marketing_price_bulk_upload', to: 'internal_price#marketing_price_bulk_upload', as: 'marketing_file_bulk_upload'
   post 'raw_file_bulk_upload', to: 'internal_price#raw_file_bulk_upload', as: 'raw_file_bulk_upload'
   post 'awp_file_bulk_upload', to: 'internal_price#awp_file_bulk_upload', as: 'awp_file_bulk_upload'
+  post 'standard_reference_price_file_bulk_upload', to: 'internal_price#standard_reference_price_file_bulk_upload', as: 'standard_reference_price_file_bulk_upload'
 
   get 'all_contract_pharmacies', to: 'internal_price#all_contract_pharmacies', as: 'all_contract_pharmacies'
   get 'dashboard', to: 'internal_price#dashboard', as: 'dashboard'
