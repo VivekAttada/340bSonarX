@@ -46,18 +46,24 @@ class InternalPrice < ApplicationRecord
   def self.build_headers(row)
     headers = {}
     row.each_with_index { |x, i| headers[x] = i }
-    missing_headers = expected_headers - headers.keys
+    missing_headers = expected_headers - headers.keys.map(&:downcase).map { |key| key.gsub(" ", "_") }
     raise "Missing required header entry '#{missing_headers[0]}'" unless missing_headers.empty?
 
     headers
   end
 
   def self.expected_headers
-    %w[ndc bin pcn group state reimbursement_total quantity_dispensed reimbursement_per_quantity_dispensed health_system_name]
+    %w[ndc bin pcn group state reimbursement_total quantity_dispensed reimbursement_per_quantity_dispensed transaction_date health_system_name]
   end
 
   def self.process_row(batch)
     return unless batch.present?
+
+    batch.each do |row|
+      row.map! do |value|
+        value.is_a?(Date) ? value.to_s : value
+      end
+    end
 
     InternalFileImportJob.perform_async(batch)
   end

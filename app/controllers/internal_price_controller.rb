@@ -86,7 +86,7 @@ class InternalPriceController < ApplicationController
   #   flash[:success] = 'AWP Price File successfully uploaded'
   #   redirect_back(fallback_location: root_path)
   # end
-  
+
   def awp_file_bulk_upload
     if params[:awp_price].present? && params[:awp_price][:file].present?
       AwpPrice.process_file(awp_file_bulk_upload_file)
@@ -108,7 +108,7 @@ class InternalPriceController < ApplicationController
 
   def standard_reference_price_file_bulk_upload
     if StandardReferencePrice.process_file(standard_reference_price_bulk_upload_file)
-      render json: { message: 'Market Price File successfully uploaded', status: :success }, status: :ok
+      render json: { message: 'Standard Reference File successfully uploaded', status: :success }, status: :ok
     else
       render json: { error: 'No file provided', status: :bad_request }, status: :bad_request
     end
@@ -320,5 +320,4 @@ class InternalPriceController < ApplicationController
       render json: { error: 'File not found' }, status: :not_found
     end
   end
-
 end

@@ -11,12 +11,12 @@ module ApplicationHelper
 
   def total_reimbursement(details)
     ndc = RawFile.where(health_system_name: details, matched_status: true).all.map(&:ndc)
-    AwpPrice.where(ndc: ndc).sum(:awp_price)
+    AwpPrice.where(ndc: ndc).sum(:awp)
   end
 
   # def contract_pharmacy_reimbursement(details)
   #   ndc = RawFile.where(rx_file_provider_name: details, matched_status: true).all.map(&:ndc)
-  #   AwpPrice.where(ndc: ndc).sum(:awp_price)
+  #   AwpPrice.where(ndc: ndc).sum(:awp)
   # end
 
   def contract_pharmacy_reimbursement(details, sort)
@@ -36,7 +36,7 @@ module ApplicationHelper
     end
 
     ndc = query.all.map(&:ndc)
-    AwpPrice.where(ndc: ndc).sum(:awp_price)
+    AwpPrice.where(ndc: ndc).sum(:awp)
   end
 
 
@@ -163,7 +163,7 @@ module ApplicationHelper
 
   # def contract_pharmacy_awp(details)
   #   all_records = RawFile.where(rx_file_provider_name: details, matched_status: true).map(&:ndc)
-  #   AwpPrice.where(ndc: all_records).sum(:awp_price)
+  #   AwpPrice.where(ndc: all_records).sum(:awp)
   # end
 
   def contract_pharmacy_awp(details, sort)
@@ -182,7 +182,7 @@ module ApplicationHelper
     end
 
     all_records = query.map(&:ndc)
-    AwpPrice.where(ndc: all_records).sum(:awp_price)
+    AwpPrice.where(ndc: all_records).sum(:awp)
   end
 
 
@@ -212,7 +212,7 @@ module ApplicationHelper
   end
 
   # def uniq_contract_pharmacy(ndc_code)
-  #   AwpPrice.where(ndc: ndc_code).sum(:awp_price)
+  #   AwpPrice.where(ndc: ndc_code).sum(:awp)
   # end
 
   def uniq_contract_pharmacy(ndc_code, sort)
@@ -232,7 +232,7 @@ module ApplicationHelper
     end
 
     ndc_records = query.map(&:ndc)
-    AwpPrice.where(ndc: ndc_records).sum(:awp_price)
+    AwpPrice.where(ndc: ndc_records).sum(:awp)
   end
 
 

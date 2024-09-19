@@ -43,19 +43,25 @@ end
   def self.build_headers(row)
     headers = {}
     row.each_with_index { |x, i| headers[x] = i }
-    missing_headers = expected_headers - headers.keys
+    missing_headers = expected_headers - headers.keys.map(&:downcase).map { |key| key.gsub(" ", "_") }
     raise "Missing required header entry '#{missing_headers[0]}'" unless missing_headers.empty?
 
     headers
   end
 
   def self.expected_headers
-    %w[ndc awp_price package_size_quantity awp_per_package product_description abbreviated_desc awp_date
-       bu_per_package pdp_awp_whole_sale_factor fdb_case_pack]
+    %w[product_description ndc abbreviated_desc awp awp_date bu_per_package
+       fdb_awp_wholesale_factor fdb_case_pack fdb_package_size_quantity awp_per_package]
   end
 
   def self.process_row(batch)
     return unless batch.present?
+
+    batch.each do |row|
+      row.map! do |value|
+        value.is_a?(Date) ? value.to_s : value
+      end
+    end
 
     AwpFileImportJob.perform_async(batch)
   end

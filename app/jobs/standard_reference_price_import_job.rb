@@ -12,6 +12,6 @@ class StandardReferencePriceImportJob
   private
 
   def expected_headers
-    %w[ndc awp package_size awp_per_package_size reimbursement_per_quantity_dispensed]
+    %w[ndc awp package_size awp_per_package_size reimbursement_per_quantity_dispensed health_system_name]
   end
 end

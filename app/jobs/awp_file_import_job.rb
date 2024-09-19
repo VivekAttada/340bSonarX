@@ -12,7 +12,7 @@ class AwpFileImportJob
   private
 
   def expected_headers
-     %w[ndc awp_price package_size_quantity awp_per_package product_description abbreviated_desc awp_date
-       bu_per_package pdp_awp_whole_sale_factor fdb_case_pack]
+      %w[product_description ndc abbreviated_desc awp awp_date bu_per_package
+       fdb_awp_wholesale_factor fdb_case_pack fdb_package_size_quantity awp_per_package]
   end
 end
