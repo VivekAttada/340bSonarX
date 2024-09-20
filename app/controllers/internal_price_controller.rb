@@ -2,7 +2,7 @@
 
 class InternalPriceController < ApplicationController
   include ApplicationHelper
-  skip_before_action :verify_authenticity_token, only: [:awp_file_bulk_upload, :internal_file_bulk_upload, :raw_file_bulk_upload, :marketing_price_bulk_upload, :update_claim_status, :standard_reference_price_file_bulk_upload]
+  skip_before_action :verify_authenticity_token, only: [:awp_file_bulk_upload, :internal_file_bulk_upload, :raw_file_bulk_upload, :marketing_price_bulk_upload, :update_claim_status, :standard_reference_price_file_bulk_upload, :match_ndc_code]
 
   # def index
   #   @internal_price = InternalPrice.new
@@ -122,6 +122,16 @@ class InternalPriceController < ApplicationController
   #   @contract_pharmacy = RawFile.search(params[:search], params[:hospital_name], params[:sort])
   #                               .all.map(&:rx_file_provider_name).uniq
   # end
+
+  def match_ndc_code
+    match_param = params[:match]
+    if match_param.present?
+      MatchNdcCodeJob.perform_async
+      render json: { message: 'MatchNdcCodeJob has been triggered.' }, status: :ok
+    else
+      render json: { error: 'Missing match parameter.' }, status: :unprocessable_entity
+    end
+  end
 
   def all_contract_pharmacies
     @contract_pharmacy = RawFile.search(params[:search], params[:hospital_name], params[:sort])

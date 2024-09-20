@@ -37,9 +37,6 @@ class InternalPrice < ApplicationRecord
       process_row(batch) if batch.present?
     end
 
-
-    trigger_match_ndc_code_job if total_rows > 0
-
     total_rows
   end
 
@@ -82,15 +79,4 @@ class InternalPrice < ApplicationRecord
       record.save!
     end
   end
-
-  def self.trigger_match_ndc_code_job
-    MatchNdcCodeJob.perform_async
-  end
-
-  # def self.update_paid_status
-  #   matched_records = RawFile.where(matched_status: true).all.map(&:id)
-  #   matched_records.each do |viv|
-  #     Delayed::Job.enqueue UpdatePaidStatusJob.new(viv)
-  #   end
-  # end
 end
