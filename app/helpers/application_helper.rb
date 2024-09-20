@@ -11,7 +11,7 @@ module ApplicationHelper
 
   def total_reimbursement(details)
     ndc = RawFile.where(health_system_name: details, matched_status: true).all.map(&:ndc)
-    AwpPrice.where(ndc: ndc).sum(:awp)
+    AwpPrice.where(ndc: ndc).map { |price| price.awp.to_f }.sum
   end
 
   # def contract_pharmacy_reimbursement(details)
@@ -36,7 +36,7 @@ module ApplicationHelper
     end
 
     ndc = query.all.map(&:ndc)
-    AwpPrice.where(ndc: ndc).sum(:awp)
+    AwpPrice.where(ndc: ndc).map { |price| price.awp.to_f }.sum
   end
 
 
@@ -116,7 +116,7 @@ module ApplicationHelper
   def correctly_paid_claim(details, sort = nil)
     query = RawFile.where(health_system_name: params[:hospital_name],
                           rx_file_provider_name: details,
-                          paid_status: 'correctly paid')
+                          paid_status: 'Correctly paid')
 
     if sort.present?
       case sort
@@ -142,7 +142,7 @@ module ApplicationHelper
   def over_paid_claim(details, sort)
     query = RawFile.where(health_system_name: params[:hospital_name],
                           rx_file_provider_name: details,
-                          paid_status: 'over paid')
+                          paid_status: 'Overpaid')
 
     if sort.present?
       case sort
@@ -182,7 +182,7 @@ module ApplicationHelper
     end
 
     all_records = query.map(&:ndc)
-    AwpPrice.where(ndc: all_records).sum(:awp)
+    AwpPrice.where(ndc: all_records).map { |price| price.awp.to_f }.sum
   end
 
 
@@ -193,7 +193,7 @@ module ApplicationHelper
   def under_paid_claim(details, sort)
     query = RawFile.where(health_system_name: params[:hospital_name],
                           rx_file_provider_name: details,
-                          paid_status: 'under paid')
+                          paid_status: 'Underpaid')
 
     if sort.present?
       case sort
@@ -230,9 +230,10 @@ module ApplicationHelper
     else
       query = query.where(matched_status: true)
     end
-
-    ndc_records = query.map(&:ndc)
-    AwpPrice.where(ndc: ndc_records).sum(:awp)
+    if query.present?
+      ndc_records = query.map(&:ndc)
+      AwpPrice.where(ndc: ndc_records).map { |price| price.awp.to_f }.sum
+    end
   end
 
 

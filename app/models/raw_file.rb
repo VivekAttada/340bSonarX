@@ -88,7 +88,7 @@ class RawFile < ApplicationRecord
               where('rx_file_provider_name ILIKE :search OR health_system_name ILIKE :search',
                     search: "%#{search_term.strip}%")
             elsif hospital_name.present?
-              where(health_system_name: hospital_name).where(matched_status: true)
+              where(health_system_name: hospital_name)
             else
               all
             end

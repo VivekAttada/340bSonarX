@@ -20,8 +20,8 @@ class InternalPriceController < ApplicationController
       {
         health_system_name: name,
         total_health_system_claims: total_health_system_claims(name),
-        total_revenue: total_revenue(name),
-        total_reimbursement: total_reimbursement(name)
+        total_revenue: '$' + total_revenue(name).round(0).to_s,
+        total_reimbursement: '$' + total_reimbursement(name).round(0).to_s
       }
     end
     render json: data, status: :ok
@@ -177,9 +177,9 @@ class InternalPriceController < ApplicationController
       {
         provider_name: details,
         claim_count: claim_count(details, params[:sort]),
-        correctly_paid_claim: correctly_paid_claim(details, params[:sort]),
-        awp: contract_pharmacy_awp(details, params[:sort]).to_f.round(2),
-        under_paid_claim: under_paid_claim(details, params[:sort]),
+        correctly_paid_claim: '$' + correctly_paid_claim(details, params[:sort]).to_s,
+        awp: '$' + contract_pharmacy_awp(details, params[:sort]).to_f.round(0).to_s,
+        under_paid_claim: '$' +  under_paid_claim(details, params[:sort]).to_s,
       }
     end
 
