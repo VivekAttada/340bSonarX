@@ -13,7 +13,7 @@ class InternalPriceController < ApplicationController
  #  @internal_details = InternalPrice.all.map(&:health_system_name).uniq.compact
  # end
 
- def index
+ def all_health_systems
   health_system_names = InternalPrice.pluck(:health_system_name).uniq.compact
 
   data = health_system_names.map do |name|

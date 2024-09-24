@@ -3,8 +3,8 @@
 
 Rails.application.routes.draw do
   mount Sidekiq::Web => '/sidekiq'
-  root to: 'internal_price#index'
-
+  root to: 'internal_price#all_health_systems'
+  get 'all_health_systems', to: 'internal_price#all_health_systems', as: 'all_health_systems'
   post 'internal_file_bulk_upload', to: 'internal_price#internal_file_bulk_upload', as: 'internal_file_bulk_upload'
   post 'marketing_price_bulk_upload', to: 'internal_price#marketing_price_bulk_upload', as: 'marketing_file_bulk_upload'
   post 'raw_file_bulk_upload', to: 'internal_price#raw_file_bulk_upload', as: 'raw_file_bulk_upload'
