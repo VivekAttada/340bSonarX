@@ -39,7 +39,6 @@ module ApplicationHelper
     AwpPrice.where(ndc: ndc).map { |price| price.awp.to_f }.sum
   end
 
-
   # def contract_pharmacies_revenue(details)
   #   RawFile.where(health_system_name: params[:hospital_name], matched_status: true, rx_file_provider_name: details)
   #          .sum(:program_revenue)
@@ -283,5 +282,11 @@ module ApplicationHelper
     when 'alternative'
       'red'
     end
+  end
+
+
+  def awp_price(detail)
+    awp_price = AwpPrice.where(ndc: detail.ndc).first
+    awp = awp_price if awp_price.present?
   end
 end

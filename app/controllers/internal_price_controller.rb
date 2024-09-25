@@ -229,62 +229,77 @@ class InternalPriceController < ApplicationController
   render json: contract_pharmacy_details
  end
 
- # def claim_management
- #  @contract_pharmacy = RawFile.search(params[:search], params[:hospital_name], params[:sort]).all.map(&:rx_file_provider_name).uniq
- # end
+  def claim_management
+    @contract_pharmacy = RawFile.search(params[:search], params[:hospital_name].gsub("_"," "), params[:sort]).page(params[:drug_page])
+                  .per(20)
 
- def claim_management
-  @contract_pharmacy = RawFile.search(params[:search], params[:hospital_name].gsub("_"," "), params[:sort])
-                .all.map(&:rx_file_provider_name).uniq
+    contract_pharmacy_details = @contract_pharmacy.map do |pharmacy_record|
+      {
+        id: pharmacy_record.id,
+        contract_pharmacy_name: pharmacy_record.rx_file_provider_name,
+        drug_name: pharmacy_record.drug_name.squish,
+        ndc_code: pharmacy_record.ndc,
+        awp: awp_price(pharmacy_record),
+        program_revenue: '$' + pharmacy_record.program_revenue.to_s,
+        expected_reimbursement: '',
+        reimbursement_spread: '',
+        paid_status: pharmacy_record.paid_status,
+        dispensed_date: pharmacy_record.dispensed_date,
+      }
+    end
 
-  contract_pharmacy_details = @contract_pharmacy.map do |details|
-   {
-    provider_name: details,
-    claim_count: claim_count(details, params[:sort]),
-   }
+    render json: contract_pharmacy_details
   end
 
-  render json: contract_pharmacy_details
- end
+  def claim_each_contract_pharmacy
+    # @contract_pharmacy_records = RawFile.search(params[:search], params[:hospital_name].gsub("_"," "), params[:sort])
+    #               .where(rx_file_provider_name: params[:contract_pharmacy_name].gsub("_"," "))
+    #               .page(params[:drug_page])
+    #               .per(10)
 
- # def claim_each_contract_pharmacy
- #  @contract_pharmacy_records = RawFile.search(params[:search], params[:hospital_name], params[:sort])
- #                .where(rx_file_provider_name: params[:contract_pharmacy_name])
- #                .page(params[:drug_page])
- #                .per(10)
- # end
+    contract_pharmacy_record = RawFile.find_by_id(params[:id])
 
- def claim_each_contract_pharmacy
-  @contract_pharmacy_records = RawFile.search(params[:search], params[:hospital_name].gsub("_"," "), params[:sort])
-                .where(rx_file_provider_name: params[:contract_pharmacy_name].gsub("_"," "))
-                .page(params[:drug_page])
-                .per(10)
+    contract_pharmacy_details =
+     {
+      processed_date: contract_pharmacy_record.processed_date,
+      pharmacy_npi: contract_pharmacy_record.pharmacy_npi,
+      rx: contract_pharmacy_record.rx,
+      manufacturer: contract_pharmacy_record.manufacturer,
+      drug_class: contract_pharmacy_record.drug_class,
+      packages_dispensed: contract_pharmacy_record.packages_dispensed,
+      mdq: contract_pharmacy_record.mdq,
+      rx_written_date: contract_pharmacy_record.rx_written_date,
+      fill: contract_pharmacy_record.fill,
+      dispensed_quantity: contract_pharmacy_record.dispensed_quantity,
+      days_supply: contract_pharmacy_record.days_supply,
+      patient_paid: contract_pharmacy_record.patient_paid,
+      admin_fee: contract_pharmacy_record.admin_fee,
+      dispensing_fee: contract_pharmacy_record.dispensing_fee,
+      primary_group: contract_pharmacy_record.primary_group,
+      primary_bin: contract_pharmacy_record.primary_bin,
+      primary_pcn: contract_pharmacy_record.primary_pcn,
+      primary_payer_name: contract_pharmacy_record.primary_payer_name,
+      primary_plan_name: contract_pharmacy_record.primary_plan_name,
+      primary_plan_type: contract_pharmacy_record.primary_plan_type,
+      primary_benefit_plan_name: contract_pharmacy_record.primary_benefit_plan_name,
+     }
 
-  contract_pharmacy_details = @contract_pharmacy_records.map do |details|
-   {
-    provider_name: details.rx_file_provider_name,
-    ndc: details.ndc,
-    claim_count: uniq_contract_pharmacy_claim(details.ndc, params[:sort])
-   }
+    render json: contract_pharmacy_details
   end
 
-  render json: contract_pharmacy_details
- end
+   # def update_claim_status
+   #  RawFile.where(ndc: params[:ndc]).update(claim_status: params[:claim])
+   #  MarketingPrice.where(ndc: params[:ndc]).update(claim_status: params[:claim])
+   #  InternalPrice.where(ndc: params[:ndc]).update(claim_status: params[:claim])
+   #  redirect_back(fallback_location: root_path)
+   # end
 
- # def update_claim_status
- #  RawFile.where(ndc: params[:ndc]).update(claim_status: params[:claim])
- #  MarketingPrice.where(ndc: params[:ndc]).update(claim_status: params[:claim])
- #  InternalPrice.where(ndc: params[:ndc]).update(claim_status: params[:claim])
- #  redirect_back(fallback_location: root_path)
- # end
-
- def update_claim_status
-  RawFile.where(ndc: params[:ndc]).update(claim_status: params[:claim])
-  MarketingPrice.where(ndc: params[:ndc]).update(claim_status: params[:claim])
-  InternalPrice.where(ndc: params[:ndc]).update(claim_status: params[:claim])
-
-  render json: { message: 'Claim status updated successfully' }, status: :ok
- end
+  def update_claim_status
+    RawFile.find_by_id(params[:id]).update(claim_status: params[:claim])
+    # MarketingPrice.where(ndc: params[:ndc]).update(claim_status: params[:claim])
+    # InternalPrice.where(ndc: params[:ndc]).update(claim_status: params[:claim])
+    render json: { message: 'Claim status updated successfully' }, status: :ok
+  end
 
  def internal_price_sample_file
   file_path = Rails.root.join('public', 'docs', 'internal_price_sample_file.xlsx')
