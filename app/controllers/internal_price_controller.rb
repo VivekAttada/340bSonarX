@@ -230,8 +230,7 @@ class InternalPriceController < ApplicationController
  end
 
   def claim_management
-    @contract_pharmacy = RawFile.search(params[:search], params[:hospital_name].gsub("_"," "), params[:sort]).page(params[:drug_page])
-                  .per(20)
+    @contract_pharmacy = RawFile.search(params[:search], params[:hospital_name].gsub("_", " "), params[:sort]).page(params[:drug_page]).per(20)
 
     contract_pharmacy_details = @contract_pharmacy.map do |pharmacy_record|
       {
@@ -248,7 +247,11 @@ class InternalPriceController < ApplicationController
       }
     end
 
-    render json: contract_pharmacy_details
+    if params[:search].present? && contract_pharmacy_details.empty?
+      render json: { message: "No results found for #{params[:search]}" }, status: :not_found
+    else
+      render json: contract_pharmacy_details
+    end
   end
 
   def claim_each_contract_pharmacy
@@ -264,7 +267,7 @@ class InternalPriceController < ApplicationController
       processed_date: contract_pharmacy_record.processed_date,
       pharmacy_npi: contract_pharmacy_record.pharmacy_npi,
       rx: contract_pharmacy_record.rx,
-      manufacturer: contract_pharmacy_record.manufacturer,
+      manufacturer: contract_pharmacy_record.manufacturer.squish,
       drug_class: contract_pharmacy_record.drug_class,
       packages_dispensed: contract_pharmacy_record.packages_dispensed,
       mdq: contract_pharmacy_record.mdq,
@@ -273,8 +276,8 @@ class InternalPriceController < ApplicationController
       dispensed_quantity: contract_pharmacy_record.dispensed_quantity,
       days_supply: contract_pharmacy_record.days_supply,
       patient_paid: contract_pharmacy_record.patient_paid,
-      admin_fee: contract_pharmacy_record.admin_fee,
-      dispensing_fee: contract_pharmacy_record.dispensing_fee,
+      admin_fee: '$' + contract_pharmacy_record.admin_fee.to_s,
+      dispensing_fee: '$' + contract_pharmacy_record.dispensing_fee.to_s,
       primary_group: contract_pharmacy_record.primary_group,
       primary_bin: contract_pharmacy_record.primary_bin,
       primary_pcn: contract_pharmacy_record.primary_pcn,
@@ -301,14 +304,14 @@ class InternalPriceController < ApplicationController
     render json: { message: 'Claim status updated successfully' }, status: :ok
   end
 
- def internal_price_sample_file
-  file_path = Rails.root.join('public', 'docs', 'internal_price_sample_file.xlsx')
-  if File.exist?(file_path)
-   send_file file_path, type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', disposition: 'attachment'
-  else
-   render json: { error: 'File not found' }, status: :not_found
-  end
- end
+   def internal_price_sample_file
+    file_path = Rails.root.join('public', 'docs', 'internal_price_sample_file.xlsx')
+    if File.exist?(file_path)
+     send_file file_path, type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', disposition: 'attachment'
+    else
+     render json: { error: 'File not found' }, status: :not_found
+    end
+   end
 
  def marketing_price_sample_file
   file_path = Rails.root.join('public', 'docs', 'marketing_price_sample_file.xlsx')
