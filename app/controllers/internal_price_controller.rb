@@ -235,7 +235,8 @@ class InternalPriceController < ApplicationController
     contract_pharmacy_details = @contract_pharmacy.map do |pharmacy_record|
       {
         id: pharmacy_record.id,
-        contract_pharmacy_name: pharmacy_record.rx_file_provider_name,
+        contract_pharmacy_name: pharmacy_record.contract_pharmacy_name,
+        contract_pharmacy_group: pharmacy_record.rx_file_provider_name,
         drug_name: pharmacy_record.drug_name.squish,
         ndc_code: pharmacy_record.ndc,
         awp: awp_price(pharmacy_record),
