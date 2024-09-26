@@ -292,7 +292,7 @@ module ApplicationHelper
   def expected_reimbursement_matching(pharmacy_record)
     ndc_code = pharmacy_record.ndc
     if MarketingPrice.where(ndc: ndc_code).where(matched_ndc_bin_pcn: true).present?
-      MarketingPrice.where(ndc: ndc_code).where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity.reimbursement_per_quantity_dispensed * pharmacy_record.program_revenue
+      MarketingPrice.where(ndc: ndc_code).where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.program_revenue
     elsif MarketingPrice.where(ndc: ndc_code).where(matched_ndc_bin: true).present?
       MarketingPrice.where(ndc: ndc_code).where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.program_revenue
     elsif MarketingPrice.where(ndc: ndc_code).where(matched_status: true).present?
