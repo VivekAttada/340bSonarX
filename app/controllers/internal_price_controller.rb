@@ -244,6 +244,7 @@ class InternalPriceController < ApplicationController
         reimbursement_spread: '',
         paid_status: pharmacy_record.paid_status,
         dispensed_date: pharmacy_record.dispensed_date,
+        claim_status: pharmacy_record.claim_status,
       }
     end
 
