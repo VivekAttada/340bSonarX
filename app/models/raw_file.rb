@@ -80,7 +80,7 @@ class RawFile < ApplicationRecord
     end
   end
 
-  def self.search(search_term, drug_name, ndc, contract_pharmacy_name, contract_pharmacy_group, hospital_name, sort)
+  def self.search(search_term, drug_name, ndc, contract_pharmacy_name, contract_pharmacy_group, hospital_name, dispensed_date_start, dispensed_date_end, sort)
     query = where(health_system_name: hospital_name)
 
     if search_term.present?
@@ -91,6 +91,12 @@ class RawFile < ApplicationRecord
 
     query = query.where('drug_name ILIKE :search',
                           search: "%#{drug_name.strip}%") if drug_name.present?
+
+    if dispensed_date_start.present? && dispensed_date_end.present?
+      dispensed_date_start = Date.parse(dispensed_date_start)
+      dispensed_date_end = Date.parse(dispensed_date_end)
+      query = query.where(dispensed_date: dispensed_date_start..dispensed_date_end)
+    end
     query = query.where('ndc ILIKE :search',
                           search: "%#{ndc.strip}%") if ndc.present?
     query = query.where('contract_pharmacy_name ILIKE :search',

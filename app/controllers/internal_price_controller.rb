@@ -123,8 +123,7 @@ class InternalPriceController < ApplicationController
       params[:search], params[:drug_name],
       params[:ndc], params[:contract_pharmacy_name],
       params[:contract_pharmacy_group], params[:hospital_name]&.gsub('_', ' '),
-      params[:sort]
-    )
+      params[:dispensed_date_start], params[:dispensed_date_end], params[:sort])
                                 .all.map(&:rx_file_provider_name).uniq
 
     contract_pharmacy_details = @contract_pharmacy.map do |details|
@@ -142,7 +141,7 @@ class InternalPriceController < ApplicationController
   def dashboard
     @contract_pharmacy = RawFile.search(params[:search], params[:drug_name],
                                         params[:ndc], params[:contract_pharmacy_name], params[:contract_pharmacy_group],
-                                        params[:hospital_name]&.gsub('_', ' '), params[:sort])
+                                        params[:hospital_name]&.gsub('_', ' '), params[:dispensed_date_start], params[:dispensed_date_end], params[:sort])
                                 .all.map(&:rx_file_provider_name).uniq
 
     contract_pharmacy_details = @contract_pharmacy.map do |details|
@@ -161,7 +160,7 @@ class InternalPriceController < ApplicationController
     @contract_pharmacy = RawFile.search(params[:search], params[:drug_name],
                                         params[:ndc], params[:contract_pharmacy_name],
                                         params[:contract_pharmacy_group], params[:hospital_name]&.gsub('_', ' '),
-                                        params[:sort])
+                                        params[:dispensed_date_start], params[:dispensed_date_end], params[:sort])
                                 .all.map(&:rx_file_provider_name).uniq
     if @contract_pharmacy.empty?
       render json: { message: 'No results found' }, status: :not_found
@@ -182,8 +181,7 @@ class InternalPriceController < ApplicationController
 
   def reimbursement_each_contract_pharmacy
     @contract_pharmacy_records = RawFile.search(
-      params[:search], nil, nil, nil, nil, nil, nil
-    )
+      params[:search], nil, nil, nil, nil, nil, nil, nil, nil )
                                         .where(rx_file_provider_name: params[:contract_pharmacy_name].gsub('_', ' '))
                                         .page(params[:drug_page]).per(20)
     if search_params_present? && @contract_pharmacy_records.empty?
@@ -284,7 +282,7 @@ class InternalPriceController < ApplicationController
   def search_contract_pharmacy
     RawFile.search(params[:search], params[:drug_name], params[:ndc],
                    params[:contract_pharmacy_name], params[:contract_pharmacy_group],
-                   params[:hospital_name]&.gsub('_', ' '), params[:sort])
+                   params[:hospital_name]&.gsub('_', ' '), params[:dispensed_date_start], params[:dispensed_date_end], params[:sort])
            .page(params[:drug_page]).per(20)
   end
 
