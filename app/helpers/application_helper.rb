@@ -286,22 +286,26 @@ module ApplicationHelper
 
   def awp_price(pharmacy_record)
     awp_price = AwpPrice.where(ndc: pharmacy_record.ndc).first
-    awp = awp_price if awp_price.present?
+    awp = awp_price.awp if awp_price.present?
   end
 
   def expected_reimbursement_matching(pharmacy_record)
-    if MarketingPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin_pcn: true).present?
-      MarketingPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.program_revenue
-    elsif MarketingPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin: true).present?
-      MarketingPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.program_revenue
-    elsif MarketingPrice.where(ndc: pharmacy_record.ndc).where(matched_status: true).present?
-       MarketingPrice.where(ndc: pharmacy_record.ndc).where(matched_status: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.program_revenue
-    elsif InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin_pcn: true).present?
-        InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.program_revenue
-    elsif InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin: true).present?
-       InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.program_revenue
-    elsif InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_status: true).present?
-        InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_status: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.program_revenue
+    if pharmacy_record.paid_status.present?
+      if MarketingPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin_pcn: true).present?
+        MarketingPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.dispensed_quantity.to_f
+      elsif MarketingPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin: true).present?
+        MarketingPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.dispensed_quantity.to_f
+      elsif MarketingPrice.where(ndc: pharmacy_record.ndc).where(matched_status: true).present?
+         MarketingPrice.where(ndc: pharmacy_record.ndc).where(matched_status: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.dispensed_quantity.to_f
+      elsif InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin_pcn: true).present?
+          InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.dispensed_quantity.to_f
+      elsif InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin: true).present?
+         InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.dispensed_quantity.to_f
+      elsif InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_status: true).present?
+          InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_status: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.dispensed_quantity.to_f
+      end
+    else
+      nil
     end
   end
 
