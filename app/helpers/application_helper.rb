@@ -284,9 +284,29 @@ module ApplicationHelper
     end
   end
 
-
-  def awp_price(detail)
-    awp_price = AwpPrice.where(ndc: detail.ndc).first
+  def awp_price(pharmacy_record)
+    awp_price = AwpPrice.where(ndc: pharmacy_record.ndc).first
     awp = awp_price if awp_price.present?
+  end
+
+  def expected_reimbursement_matching(pharmacy_record)
+    ndc_code = pharmacy_record.ndc
+    if MarketingPrice.where(ndc: ndc_code).where(matched_ndc_bin_pcn: true).present?
+      MarketingPrice.where(ndc: ndc_code).where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity.reimbursement_per_quantity_dispensed * pharmacy_record.program_revenue
+    elsif MarketingPrice.where(ndc: ndc_code).where(matched_ndc_bin: true).present?
+      MarketingPrice.where(ndc: ndc_code).where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.program_revenue
+    elsif MarketingPrice.where(ndc: ndc_code).where(matched_status: true).present?
+       MarketingPrice.where(ndc: ndc_code).where(matched_status: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.program_revenue
+    elsif InternalPrice.where(ndc: ndc_code).where(matched_ndc_bin_pcn: true).present?
+        InternalPrice.where(ndc: ndc_code).where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.program_revenue
+    elsif InternalPrice.where(ndc: ndc_code).where(matched_ndc_bin: true).present?
+       InternalPrice.where(ndc: ndc_code).where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.program_revenue
+    elsif InternalPrice.where(ndc: ndc_code).where(matched_status: true).present?
+        InternalPrice.where(ndc: ndc_code).where(matched_status: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.program_revenue
+    end
+  end
+
+  def reimbursement_spread(pharmacy_record)
+    (expected_reimbursement_matching(pharmacy_record) - pharmacy_record.program_revenue) if pharmacy_record.paid_status.present?
   end
 end
