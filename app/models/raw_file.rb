@@ -80,18 +80,20 @@ class RawFile < ApplicationRecord
     end
   end
 
-  def self.search(search_term, hospital_name, sort)
-    query = if search_term.present? && hospital_name.present?
-              where('rx_file_provider_name ILIKE :search OR health_system_name ILIKE :search',
-                    search: "%#{search_term.strip}%").where(health_system_name: hospital_name)
-            elsif search_term.present?
-              where('rx_file_provider_name ILIKE :search OR health_system_name ILIKE :search',
-                    search: "%#{search_term.strip}%")
-            elsif hospital_name.present?
-              where(health_system_name: hospital_name)
-            else
-              all
-            end
+  def self.search(search_term, drug_name, ndc, contract_pharmacy_name, contract_pharmacy_group, hospital_name, sort)
+    query = self.all
+
+    if search_term.present?
+      query = query.where('rx_file_provider_name ILIKE :search OR health_system_name ILIKE :search OR
+                           drug_name ILIKE :search OR manufacturer ILIKE :search OR ndc ILIKE :search OR drug_class ILIKE :search',
+                          search: "%#{search_term.strip}%")
+    end
+
+    query = query.where(drug_name: drug_name) if drug_name.present?
+    query = query.where(ndc: ndc) if ndc.present?
+    query = query.where(contract_pharmacy_name: contract_pharmacy_name) if contract_pharmacy_name.present?
+    query = query.where(contract_pharmacy_group: contract_pharmacy_group) if contract_pharmacy_group.present?
+    query = query.where(health_system_name: hospital_name) if hospital_name.present?
 
     if sort.present?
       case sort
