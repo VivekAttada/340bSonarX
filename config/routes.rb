@@ -27,4 +27,5 @@ Rails.application.routes.draw do
   get 'standard_reference_price_sample_file', to: 'internal_price#standard_reference_price_sample_file'
   get 'awp_sample_file', to: 'internal_price#awp_sample_file'
   post 'match_ndc_code', to: 'internal_price#match_ndc_code'
+  post 'add_health_system', to: 'internal_price#add_health_system'
 end
