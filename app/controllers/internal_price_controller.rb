@@ -210,7 +210,8 @@ class InternalPriceController < ApplicationController
 
   def claim_management
     @contract_pharmacy = search_contract_pharmacy
-    contract_pharmacy_details = map_contract_pharmacy_details(@contract_pharmacy)
+    total_count = total_contract_pharmacy_count
+    contract_pharmacy_details = map_contract_pharmacy_details(@contract_pharmacy, total_count)
 
     if search_params_present? && contract_pharmacy_details.empty?
       render json: { message: 'No results found' }, status: :not_found
@@ -295,8 +296,16 @@ class InternalPriceController < ApplicationController
            .page(params[:drug_page]).per(20)
   end
 
-  def map_contract_pharmacy_details(contract_pharmacies)
-    contract_pharmacies.map do |pharmacy_record|
+  def total_contract_pharmacy_count
+    RawFile.search(params[:search], params[:drug_name], params[:ndc],
+                   params[:contract_pharmacy_name], params[:contract_pharmacy_group],
+                   params[:hospital_name]&.gsub('_', ' '), params[:dispensed_date_start], params[:dispensed_date_end], params[:sort]).count
+  end
+
+  def map_contract_pharmacy_details(contract_pharmacies, total_count)
+  {
+    count: total_count,
+    details: contract_pharmacies.map do |pharmacy_record|
       {
         id: pharmacy_record.id, contract_pharmacy_name: pharmacy_record.contract_pharmacy_name,
         contract_pharmacy_group: pharmacy_record.rx_file_provider_name, drug_name: pharmacy_record.drug_name.squish,
@@ -308,7 +317,8 @@ class InternalPriceController < ApplicationController
         dispensed_date: pharmacy_record.dispensed_date, claim_status: pharmacy_record.claim_status,
       }
     end
-  end
+  }
+end
 
   def search_params_present?
     params[:search].present? || params[:drug_name].present? || params[:ndc].present? ||
