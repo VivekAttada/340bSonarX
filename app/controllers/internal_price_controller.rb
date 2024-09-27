@@ -190,7 +190,7 @@ class InternalPriceController < ApplicationController
 
   def reimbursement_each_contract_pharmacy
     @contract_pharmacy_records = RawFile.search(
-      params[:search], nil, nil, nil, nil, nil, nil, nil, nil )
+      params[:search], nil, nil, nil, nil, params[:hospital_name]&.gsub('_', ' '), nil, nil, nil )
                                         .where(rx_file_provider_name: params[:contract_pharmacy_name].gsub('_', ' '))
                                         .page(params[:drug_page]).per(20)
     if search_params_present? && @contract_pharmacy_records.empty?
