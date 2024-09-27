@@ -96,9 +96,11 @@ class RawFile < ApplicationRecord
       dispensed_date_start = Date.parse(dispensed_date_start)
       dispensed_date_end = Date.parse(dispensed_date_end)
       query = query.where(dispensed_date: dispensed_date_start..dispensed_date_end)
+    elsif dispensed_date_start.present?
+      dispensed_date_start = Date.parse(dispensed_date_start)
+      query = query.where(dispensed_date: dispensed_date_start)
     end
-    query = query.where('ndc ILIKE :search',
-                          search: "%#{ndc.strip}%") if ndc.present?
+    query = query.where(ndc: ndc) if ndc.present?
     query = query.where('contract_pharmacy_name ILIKE :search',
                           search: "%#{contract_pharmacy_name.strip}%") if contract_pharmacy_name.present?
     query = query.where('contract_pharmacy_group ILIKE :search',

@@ -4,7 +4,7 @@ class InternalPriceController < ApplicationController
   include ApplicationHelper
   skip_before_action :verify_authenticity_token,
                      only: %i[awp_file_bulk_upload internal_file_bulk_upload raw_file_bulk_upload marketing_price_bulk_upload
-                              update_claim_status standard_reference_price_file_bulk_upload match_ndc_code]
+                              update_claim_status standard_reference_price_file_bulk_upload match_ndc_code add_health_system]
 
   # def index
   #  @internal_price = InternalPrice.new
@@ -14,6 +14,15 @@ class InternalPriceController < ApplicationController
   #  @standard_reference_file = StandardReferencePrice.new
   #  @internal_details = InternalPrice.all.map(&:health_system_name).uniq.compact
   # end
+
+  def add_health_system
+    if params[:hospital_name].present?
+      InternalPrice.create(health_system_name: params[:hospital_name])
+      render json: { message: 'Health System added successfully', status: :success }, status: :ok
+    else
+      render json: { error: 'Please insert Health System Name', status: :bad_request }, status: :bad_request
+    end
+  end
 
   def all_health_systems
     health_system_names = InternalPrice.pluck(:health_system_name).uniq.compact
@@ -296,7 +305,7 @@ class InternalPriceController < ApplicationController
         expected_reimbursement: pharmacy_record.paid_status.present? ? "$#{expected_reimbursement_matching(pharmacy_record).round(0)}" : '',
         reimbursement_spread: reimbursement_spread(pharmacy_record).present? ? "$#{reimbursement_spread(pharmacy_record).round(0)}" : '',
         paid_status: pharmacy_record.paid_status,
-        dispensed_date: pharmacy_record.dispensed_date, claim_status: pharmacy_record.claim_status
+        dispensed_date: pharmacy_record.dispensed_date, claim_status: pharmacy_record.claim_status,
       }
     end
   end
