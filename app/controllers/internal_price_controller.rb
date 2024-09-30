@@ -38,12 +38,6 @@ class InternalPriceController < ApplicationController
     render json: data, status: :ok
   end
 
-  # def internal_file_bulk_upload
-  #  InternalPrice.process_file(internal_file_bulk_upload_file)
-  #  flash[:success] = 'Internal File successfully uploaded'
-  #  redirect_back(fallback_location: root_path)
-  # end
-
   def internal_file_bulk_upload
     if InternalPrice.process_file(internal_file_bulk_upload_file)
       render json: { message: 'Internal File successfully uploaded', status: :success }, status: :ok
@@ -56,12 +50,6 @@ class InternalPriceController < ApplicationController
     InternalPrice.open_spreadsheet(params[:internal_price][:file])
   end
 
-  # def raw_file_bulk_upload
-  #  RawFile.process_file(raw_file_bulk_upload_file)
-  #  flash[:success] = 'Raw File successfully uploaded'
-  #  redirect_back(fallback_location: root_path)
-  # end
-
   def raw_file_bulk_upload
     if RawFile.process_file(raw_file_bulk_upload_file)
       render json: { message: 'Raw File successfully uploaded', status: :success }, status: :ok
@@ -73,12 +61,6 @@ class InternalPriceController < ApplicationController
   def raw_file_bulk_upload_file
     RawFile.open_spreadsheet(params[:raw_file][:file])
   end
-
-  # def marketing_price_bulk_upload
-  #  MarketingPrice.process_file(marketing_price_bulk_upload_file)
-  #  flash[:success] = 'Market Price File successfully uploaded'
-  #  redirect_back(fallback_location: root_path)
-  # end
 
   def marketing_price_bulk_upload
     if MarketingPrice.process_file(marketing_price_bulk_upload_file)

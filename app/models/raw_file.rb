@@ -103,7 +103,7 @@ class RawFile < ApplicationRecord
     query = query.where(ndc: ndc) if ndc.present?
     query = query.where('contract_pharmacy_name ILIKE :search',
                           search: "%#{contract_pharmacy_name.strip}%") if contract_pharmacy_name.present?
-    query = query.where('contract_pharmacy_group ILIKE :search',
+    query = query.where('rx_file_provider_name ILIKE :search',
                           search: "%#{contract_pharmacy_group.strip}%") if contract_pharmacy_group.present?
 
     if sort.present?

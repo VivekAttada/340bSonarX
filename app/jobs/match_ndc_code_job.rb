@@ -5,7 +5,27 @@ class MatchNdcCodeJob
     raw_file_all_ndc = RawFile.all.map(&:ndc).uniq
     raw_file_all_ndc.each do |each_ndc|
       RawFile.where(ndc: each_ndc).update_all(ndc: each_ndc.gsub('-', ''))
-     end
+    end
+    awp_file_all_ndc = AwpPrice.all.map(&:ndc).uniq
+    awp_file_all_ndc.each do |each_ndc|
+      AwpPrice.where(ndc: each_ndc).update_all(ndc: each_ndc.gsub('-', ''))
+      AwpPrice.where(ndc: each_ndc).update_all(ndc: each_ndc.gsub('.0', ''))
+    end
+
+    internal_file_all_ndc = InternalPrice.all.map(&:ndc).uniq
+    internal_file_all_ndc.each do |each_ndc|
+      InternalPrice.where(ndc: each_ndc).update_all(ndc: each_ndc.gsub('-', '').gsub('.0', ''))
+    end
+
+    marketing_file_all_ndc = MarketingPrice.all.map(&:ndc).uniq
+    marketing_file_all_ndc.each do |each_ndc|
+      MarketingPrice.where(ndc: each_ndc).update_all(ndc: each_ndc.gsub('-', '').gsub('.0', ''))
+    end
+
+    standard_file_all_ndc = StandardReferencePrice.all.map(&:ndc).uniq
+    standard_file_all_ndc.each do |each_ndc|
+      StandardReferencePrice.where(ndc: each_ndc).update_all(ndc: each_ndc.gsub('-', '').gsub('.0', ''))
+    end
 
     all_ndc_codes = InternalPrice.pluck(:ndc)
     all_bin = InternalPrice.pluck(:bin)

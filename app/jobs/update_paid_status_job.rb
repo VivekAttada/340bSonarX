@@ -3,6 +3,7 @@ class UpdatePaidStatusJob < Struct.new(:id)
 
   def perform(record_id)
     raw_data = RawFile.find_by_id(record_id)
+    InternalPrice.where.not(health_system_name: nil).where(ndc: nil, group: nil, state: nil, quantity_dispensed: nil, bin: nil).map(&:destroy)
     ndc_code = raw_data.ndc
 
   raw_sum = RawFile.where(ndc: ndc_code).pluck(:program_revenue).map(&:to_f).sum / RawFile.where(ndc: ndc_code).pluck(:dispensed_quantity).map(&:to_f).sum
@@ -12,7 +13,7 @@ class UpdatePaidStatusJob < Struct.new(:id)
 
   # if MarketingPrice.where(ndc: ndc_code).where(ndc_bcn_pin_state: true).present?
   #   marketing_sum = MarketingPrice.where(ndc: ndc_code).where(ndc_bcn_pin_state: true).pluck(:claim_cost).map(&:to_f).sum / MarketingPrice.where(ndc: ndc_code).where(ndc_bcn_pin_state: true).pluck(:quantity_dispensed).map(&:to_f).sum
- if MarketingPrice.where(ndc: ndc_code).where(matched_ndc_bin_pcn: true).present?
+  if MarketingPrice.where(ndc: ndc_code).where(matched_ndc_bin_pcn: true).present?
     marketing_sum = MarketingPrice.where(ndc: ndc_code).where(matched_ndc_bin_pcn: true).pluck(:claim_cost).map(&:to_f).sum / MarketingPrice.where(ndc: ndc_code).where(matched_ndc_bin_pcn: true).pluck(:quantity_dispensed).map(&:to_f).sum
   elsif MarketingPrice.where(ndc: ndc_code).where(matched_ndc_bin: true).present?
     marketing_sum = MarketingPrice.where(ndc: ndc_code).where(matched_ndc_bin: true).pluck(:claim_cost).map(&:to_f).sum / MarketingPrice.where(ndc: ndc_code).where(matched_ndc_bin: true).pluck(:quantity_dispensed).map(&:to_f).sum
