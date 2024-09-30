@@ -172,44 +172,87 @@ class InternalPriceController < ApplicationController
 
   def reimbursement_each_contract_pharmacy_one
     @contract_pharmacy_records = RawFile.search(
-      params[:search], nil, nil, nil, nil, params[:hospital_name]&.gsub('_', ' '), nil, nil, nil )
-                                        .where(rx_file_provider_name: params[:contract_pharmacy_name].gsub('_', ' '))
-                                        .page(params[:drug_page]).per(20)
-    if search_params_present? && @contract_pharmacy_records.empty?
+      params[:search], nil, nil, nil, nil, params[:hospital_name]&.gsub('_', ' '), nil, nil, nil
+    ).where(rx_file_provider_name: params[:contract_pharmacy_name].gsub('_', ' '))
+     .all.map(&:contract_pharmacy_name).uniq
+
+    paginated_pharmacy_records = Kaminari.paginate_array(@contract_pharmacy_records)
+                                         .page(params[:drug_page])
+                                         .per(10)
+
+    if search_params_present? && paginated_pharmacy_records.empty?
       render json: { message: 'No results found' }, status: :not_found
       return
     end
-    contract_pharmacy_details = @contract_pharmacy_records.map do |details|
+
+    contract_pharmacy_details = paginated_pharmacy_records.map do |details|
       {
-        contract_pharmacy_name: details.contract_pharmacy_name,
-        claim_count: '',
-        correctly_paid_claim: '',
-        awp: '',
-        under_paid_claim: ''
+        contract_pharmacy_name: details,
+        claim_count: contract_pharmacy_name_level_claim(details, params[:sort]),
+        correctly_paid_claim: '$' + contract_pharmacy_name_level_correct_paid_claim(details, params[:sort]).to_s,
+        awp:  '$' + contract_pharmacy_name_level_awp(details, params[:sort]).to_s,
+        under_paid_claim:  '$' + contract_pharmacy_name_level_under_paid(details, params[:sort]).to_s
       }
     end
-    render json: contract_pharmacy_details
+
+    render json: {
+      contract_pharmacy_name_details: contract_pharmacy_details,
+      total_count: paginated_pharmacy_records.total_count
+    }
   end
+
 
   def reimbursement_each_contract_pharmacy
     @contract_pharmacy_records = RawFile.search(
-      params[:search], nil, nil, nil, nil, params[:hospital_name]&.gsub('_', ' '), nil, nil, nil )
-                                        .where(rx_file_provider_name: params[:contract_pharmacy_name].gsub('_', ' '))
-                                        .page(params[:drug_page]).per(20)
-    if search_params_present? && @contract_pharmacy_records.empty?
+      params[:search], nil, nil, nil, nil, params[:hospital_name]&.gsub('_', ' '), nil, nil, nil
+    ).where(rx_file_provider_name: params[:contract_pharmacy_name].gsub('_', ' '))
+     .where(contract_pharmacy_name: params[:pharmacy_name])
+     .map(&:ndc).uniq
+
+    paginated_pharmacy_records = Kaminari.paginate_array(@contract_pharmacy_records)
+                                         .page(params[:drug_page])
+                                         .per(20)
+
+    if search_params_present? && paginated_pharmacy_records.empty?
       render json: { message: 'No results found' }, status: :not_found
       return
     end
-    contract_pharmacy_details = @contract_pharmacy_records.map do |details|
+
+    contract_pharmacy_details = paginated_pharmacy_records.map do |details|
       {
-        contract_pharmacy_name: details.contract_pharmacy_name,
-        ndc: details.ndc,
-        uniq_contract_pharmacy: uniq_contract_pharmacy(details.ndc, params[:sort]),
-        paid_status: details.paid_status
+        drug_name: reimbursement_ndc_level_group_drug_name(details).to_s.squish,
+        ndc: details,
+        total_claims: reimbursement_ndc_level_group_claims(details),
+        awp: reimbursement_ndc_level_group_awp(details),
+        under_paid_amount: reimbursement_ndc_level_group_under_paid(details)
       }
     end
-    render json: contract_pharmacy_details
+
+    render json: {
+      contract_pharmacy_details: contract_pharmacy_details,
+      total_count: paginated_pharmacy_records.total_count
+    }
   end
+
+  # def reimbursement_each_contract_pharmacy
+  #   @contract_pharmacy_records = RawFile.search(
+  #     params[:search], nil, nil, nil, nil, params[:hospital_name]&.gsub('_', ' '), nil, nil, nil )
+  #                                       .where(rx_file_provider_name: params[:contract_pharmacy_name].gsub('_', ' '))
+  #                                       .page(params[:drug_page]).per(20)
+  #   if search_params_present? && @contract_pharmacy_records.empty?
+  #     render json: { message: 'No results found' }, status: :not_found
+  #     return
+  #   end
+  #   contract_pharmacy_details = @contract_pharmacy_records.map do |details|
+  #     {
+  #       contract_pharmacy_name: details.contract_pharmacy_name,
+  #       ndc: details.ndc,
+  #       uniq_contract_pharmacy: uniq_contract_pharmacy(details.ndc, params[:sort]),
+  #       paid_status: details.paid_status
+  #     }
+  #   end
+  #   render json: contract_pharmacy_details
+  # end
 
   def claim_management
     @contract_pharmacy = search_contract_pharmacy
