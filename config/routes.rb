@@ -15,6 +15,8 @@ Rails.application.routes.draw do
   get 'dashboard', to: 'internal_price#dashboard', as: 'dashboard'
   get 'reimbursement', to: 'internal_price#reimbursement', as: 'reimbursement'
   get 'analytics', to: 'internal_price#analytics', as: 'analytics'
+  get 'reimbursement_each_contract_pharmacy_one', to: 'internal_price#reimbursement_each_contract_pharmacy_one',
+                                              as: 'reimbursement_each_contract_pharmacy_one'
   get 'reimbursement_each_contract_pharmacy', to: 'internal_price#reimbursement_each_contract_pharmacy',
                                               as: 'reimbursement_each_contract_pharmacy'
   get 'claim_management', to: 'internal_price#claim_management', as: 'claim_management'
@@ -28,4 +30,5 @@ Rails.application.routes.draw do
   get 'awp_sample_file', to: 'internal_price#awp_sample_file'
   post 'match_ndc_code', to: 'internal_price#match_ndc_code'
   post 'add_health_system', to: 'internal_price#add_health_system'
+
 end

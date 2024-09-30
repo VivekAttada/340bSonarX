@@ -170,6 +170,27 @@ class InternalPriceController < ApplicationController
     render json: contract_pharmacy_details
   end
 
+  def reimbursement_each_contract_pharmacy_one
+    @contract_pharmacy_records = RawFile.search(
+      params[:search], nil, nil, nil, nil, params[:hospital_name]&.gsub('_', ' '), nil, nil, nil )
+                                        .where(rx_file_provider_name: params[:contract_pharmacy_name].gsub('_', ' '))
+                                        .page(params[:drug_page]).per(20)
+    if search_params_present? && @contract_pharmacy_records.empty?
+      render json: { message: 'No results found' }, status: :not_found
+      return
+    end
+    contract_pharmacy_details = @contract_pharmacy_records.map do |details|
+      {
+        contract_pharmacy_name: details.contract_pharmacy_name,
+        claim_count: '',
+        correctly_paid_claim: '',
+        awp: '',
+        under_paid_claim: ''
+      }
+    end
+    render json: contract_pharmacy_details
+  end
+
   def reimbursement_each_contract_pharmacy
     @contract_pharmacy_records = RawFile.search(
       params[:search], nil, nil, nil, nil, params[:hospital_name]&.gsub('_', ' '), nil, nil, nil )
