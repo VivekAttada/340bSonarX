@@ -3,7 +3,6 @@
 class MarketingPrice < ApplicationRecord
 
   def self.open_spreadsheet(file)
-    debugger
     case File.extname(file.original_filename)
     when '.csv' then Roo::CSV.new(file.path)
     when '.xls' then Roo::Excel.new(file.path)
