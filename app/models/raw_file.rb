@@ -11,7 +11,7 @@ class RawFile < ApplicationRecord
     end
   end
 
-  def self.process_file(parsed_file)
+  def self.process_file(parsed_file, health_system_name)
     batch = []
     batch_size = 10000
     total_rows = 0
@@ -26,7 +26,7 @@ class RawFile < ApplicationRecord
         else
           batch << row
           if batch.size >= batch_size
-            process_row(batch)
+            process_row(batch, health_system_name)
             batch = []
           end
 
@@ -34,7 +34,7 @@ class RawFile < ApplicationRecord
         end
       end
 
-      process_row(batch)
+      process_row(batch, health_system_name)
     end
 
     total_rows
@@ -54,10 +54,10 @@ class RawFile < ApplicationRecord
        manufacturer drug_class packages_dispensed mdq rx_written_date dispensed_date
        fill dispensed_quantity days_supply program_revenue patient_paid admin_fee
        dispensing_fee transaction_code card_holder primary_bin primary_pcn primary_group primary_payer_name
-       primary_plan_name primary_plan_type primary_benefit_plan_name rx_file_provider_name health_system_name]
+       primary_plan_name primary_plan_type primary_benefit_plan_name rx_file_provider_name]
   end
 
-  def self.process_row(batch)
+  def self.process_row(batch, health_system_name)
     return unless batch.present?
 
     batch.each do |row|
@@ -66,15 +66,21 @@ class RawFile < ApplicationRecord
       end
     end
 
-    RawFileImportJob.perform_async(batch)
+    RawFileImportJob.perform_async(batch, health_system_name)
   end
 
 
-  def self.import_data(headers, batch)
+  def self.import_data(headers, batch, health_system_name)
+
     header_mapping = headers.map(&:downcase).map(&:to_sym)
 
     batch.each do |data_row|
+
       attributes = header_mapping.zip(data_row).to_h
+
+      attributes[:health_system_name] = health_system_name
+
+
       record = new(attributes)
       record.save!
     end

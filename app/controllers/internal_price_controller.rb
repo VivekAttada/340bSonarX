@@ -39,7 +39,9 @@ class InternalPriceController < ApplicationController
   end
 
   def internal_file_bulk_upload
-    if InternalPrice.process_file(internal_file_bulk_upload_file)
+    health_system_name = params[:health_system_name]
+
+    if InternalPrice.process_file(internal_file_bulk_upload_file, health_system_name)
       render json: { message: 'Internal File successfully uploaded', status: :success }, status: :ok
     else
       render json: { error: 'No file provided', status: :bad_request }, status: :bad_request
@@ -51,7 +53,8 @@ class InternalPriceController < ApplicationController
   end
 
   def raw_file_bulk_upload
-    if RawFile.process_file(raw_file_bulk_upload_file)
+    health_system_name = params[:health_system_name]
+    if RawFile.process_file(raw_file_bulk_upload_file, health_system_name)
       render json: { message: 'Raw File successfully uploaded', status: :success }, status: :ok
     else
       render json: { error: 'No file provided', status: :bad_request }, status: :bad_request
@@ -63,7 +66,8 @@ class InternalPriceController < ApplicationController
   end
 
   def marketing_price_bulk_upload
-    if MarketingPrice.process_file(marketing_price_bulk_upload_file)
+    health_system_name = params[:health_system_name]
+    if MarketingPrice.process_file(marketing_price_bulk_upload_file, health_system_name)
       render json: { message: 'Market Price File successfully uploaded', status: :success }, status: :ok
     else
       render json: { error: 'No file provided', status: :bad_request }, status: :bad_request
@@ -88,7 +92,8 @@ class InternalPriceController < ApplicationController
   end
 
   def standard_reference_price_file_bulk_upload
-    if StandardReferencePrice.process_file(standard_reference_price_bulk_upload_file)
+    health_system_name = params[:health_system_name]
+    if StandardReferencePrice.process_file(standard_reference_price_bulk_upload_file, health_system_name)
       render json: { message: 'Standard Reference File successfully uploaded', status: :success }, status: :ok
     else
       render json: { error: 'No file provided', status: :bad_request }, status: :bad_request

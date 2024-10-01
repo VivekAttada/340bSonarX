@@ -12,7 +12,7 @@ class StandardReferencePrice < ApplicationRecord
     end
   end
 
-    def self.process_file(parsed_file)
+    def self.process_file(parsed_file, health_system_name)
 	  batch = []
 	  batch_size = 10000
 	  total_rows = 0
@@ -27,7 +27,7 @@ class StandardReferencePrice < ApplicationRecord
 	      else
 	        batch << row
 	        if batch.size >= batch_size
-	          process_row(batch)
+	          process_row(batch, health_system_name)
 	          batch = []
 	        end
 
@@ -35,7 +35,7 @@ class StandardReferencePrice < ApplicationRecord
 	      end
 	    end
 
-	    process_row(batch)
+	    process_row(batch, health_system_name)
 	  end
 
 	  total_rows
@@ -51,23 +51,26 @@ class StandardReferencePrice < ApplicationRecord
 	end
 
 	def self.expected_headers
-	  %w[ndc awp package_size awp_per_package_size reimbursement_per_quantity_dispensed health_system_name]
+	  %w[ndc awp package_size awp_per_package_size reimbursement_per_quantity_dispensed]
 	end
 
-	def self.process_row(batch)
+	def self.process_row(batch, health_system_name)
 	  return unless batch.present?
 
-	  StandardReferencePriceImportJob.perform_async(batch)
+	  StandardReferencePriceImportJob.perform_async(batch, health_system_name)
 	end
 
 
-	def self.import_data(headers, batch)
-	  header_mapping = headers.map(&:downcase).map(&:to_sym)
+	def self.import_data(headers, batch, health_system_name)
+    header_mapping = headers.map(&:downcase).map(&:to_sym)
+    batch.each do |data_row|
 
-	  batch.each do |data_row|
-	    attributes = header_mapping.zip(data_row).to_h
-	    record = new(attributes)
-	    record.save!
-	  end
-	end
+      attributes = header_mapping.zip(data_row).to_h
+
+      attributes[:health_system_name] = health_system_name
+
+      record = new(attributes)
+      record.save!
+    end
+  end
 end

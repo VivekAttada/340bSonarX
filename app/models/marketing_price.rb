@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
 class MarketingPrice < ApplicationRecord
+
   def self.open_spreadsheet(file)
+    debugger
     case File.extname(file.original_filename)
     when '.csv' then Roo::CSV.new(file.path)
     when '.xls' then Roo::Excel.new(file.path)
@@ -11,7 +13,7 @@ class MarketingPrice < ApplicationRecord
     end
   end
 
-  def self.process_file(parsed_file)
+  def self.process_file(parsed_file, health_system_name)
     batch = []
     batch_size = 10000
     total_rows = 0
@@ -34,7 +36,7 @@ class MarketingPrice < ApplicationRecord
         end
       end
 
-      process_row(batch)
+      process_row(batch, health_system_name) if batch.present?
     end
 
     total_rows
@@ -43,6 +45,7 @@ class MarketingPrice < ApplicationRecord
   def self.build_headers(row)
     headers = {}
     row.each_with_index { |x, i| headers[x] = i }
+    debugger
     missing_headers = expected_headers - headers.keys.map(&:downcase).map { |key| key.gsub(" ", "_") }
     raise "Missing required header entry '#{missing_headers[0]}'" unless missing_headers.empty?
 
@@ -50,25 +53,26 @@ class MarketingPrice < ApplicationRecord
   end
 
   def self.expected_headers
-    %w[ndc bin pcn group state claim_cost quantity_dispensed reimbursement_per_quantity_dispensed health_system_name]
+    %w[ndc bin pcn group state claim_cost quantity_dispensed reimbursement_per_quantity_dispensed]
   end
 
-  def self.process_row(batch)
+  def self.process_row(batch, health_system_name)
     return unless batch.present?
 
-    MarketFileImportJob.perform_async(batch)
+    MarketFileImportJob.perform_async(batch, health_system_name)
   end
 
-  def self.import_data(headers, batch)
-    # Create a mapping of header names to model attributes
+  def self.import_data(headers, batch, health_system_name)
+
     header_mapping = headers.map(&:downcase).map(&:to_sym)
 
     batch.each do |data_row|
-      # Convert each row into a hash where keys are attribute names
+
       attributes = header_mapping.zip(data_row).to_h
 
-      # Create or update records based on the attributes hash
-      # Assuming `name` or any other attribute can be used to identify the record
+      attributes[:health_system_name] = health_system_name
+
+
       record = new(attributes)
       record.save!
     end

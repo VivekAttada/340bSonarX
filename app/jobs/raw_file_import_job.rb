@@ -3,10 +3,10 @@
 class RawFileImportJob
   include Sidekiq::Worker
 
-  def perform(batch)
+  def perform(batch, health_system_name)
     return unless batch.present?
 
-    RawFile.import_data(expected_headers, batch)
+    RawFile.import_data(expected_headers, batch, health_system_name)
   end
 
   private
@@ -16,6 +16,6 @@ class RawFileImportJob
        manufacturer drug_class packages_dispensed mdq rx_written_date dispensed_date
        fill dispensed_quantity days_supply program_revenue patient_paid admin_fee
        dispensing_fee transaction_code card_holder primary_bin primary_pcn primary_group primary_payer_name
-       primary_plan_name primary_plan_type primary_benefit_plan_name rx_file_provider_name health_system_name]
+       primary_plan_name primary_plan_type primary_benefit_plan_name rx_file_provider_name]
   end
 end
