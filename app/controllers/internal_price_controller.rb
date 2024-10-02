@@ -125,7 +125,7 @@ class InternalPriceController < ApplicationController
     contract_pharmacy_details = @contract_pharmacy.map do |details|
       {
         contract_pharmacy_group: details,
-        claim_count: claim_count(details, params[:sort]),
+        claim_count: claim_count(params[:hospital_name]&.gsub('_', ' '), details, params[:sort]),
         revenue: "$#{contract_pharmacies_revenue(details, params[:sort]).round(0)}",
         reimbursement: "$#{contract_pharmacy_reimbursement(details, params[:sort]).to_f.round(0)}"
       }
@@ -142,7 +142,7 @@ class InternalPriceController < ApplicationController
 
     contract_pharmacy_details = @contract_pharmacy.map do |details|
       {
-        contract_pharmacy_group: details, claim_count: claim_count(details, params[:sort]),
+        contract_pharmacy_group: details, claim_count: claim_count(params[:hospital_name]&.gsub('_', ' '), details, params[:sort]),
         correctly_paid_claim: "$#{correctly_paid_claim(details, params[:sort])}",
         under_paid_claim: "$#{under_paid_claim(details, params[:sort])}",
         over_paid_claim: "$#{over_paid_claim(details, params[:sort])}"
@@ -165,9 +165,9 @@ class InternalPriceController < ApplicationController
 
     contract_pharmacy_details = @contract_pharmacy.map do |details|
       {
-        contract_pharmacy_group: details, claim_count: claim_count(details, params[:sort]),
+        contract_pharmacy_group: details, claim_count: claim_count(params[:hospital_name]&.gsub('_', ' '), details, params[:sort]),
         correctly_paid_claim: "$#{correctly_paid_claim(details, params[:sort])}",
-        awp: "$#{contract_pharmacy_awp(details, params[:sort]).to_f.round(0)}",
+        awp: "$#{contract_pharmacy_awp(params[:hospital_name]&.gsub('_', ' '), details, params[:sort]).to_f.round(0)}",
         under_paid_claim: "$#{under_paid_claim(details, params[:sort])}"
       }
     end
@@ -193,7 +193,7 @@ class InternalPriceController < ApplicationController
     contract_pharmacy_details = paginated_pharmacy_records.map do |details|
       {
         contract_pharmacy_name: details,
-        claim_count: contract_pharmacy_name_level_claim(details, params[:sort]),
+        claim_count: contract_pharmacy_name_level_claim(params[:contract_pharmacy_name].gsub('_', ' '), details, params[:sort]),
         correctly_paid_claim: '$' + contract_pharmacy_name_level_correct_paid_claim(details, params[:sort]).to_s,
         awp:  '$' + contract_pharmacy_name_level_awp(details, params[:sort]).to_s,
         under_paid_claim:  '$' + contract_pharmacy_name_level_under_paid(details, params[:sort]).to_s
@@ -286,56 +286,6 @@ class InternalPriceController < ApplicationController
     # MarketingPrice.where(ndc: params[:ndc]).update(claim_status: params[:claim])
     # InternalPrice.where(ndc: params[:ndc]).update(claim_status: params[:claim])
     render json: { message: 'Claim status updated successfully' }, status: :ok
-  end
-
-  def internal_price_sample_file
-    file_path = Rails.root.join('public', 'docs', 'internal_price_sample_file.xlsx')
-    if File.exist?(file_path)
-      send_file file_path, type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                           disposition: 'attachment'
-    else
-      render json: { error: 'File not found' }, status: :not_found
-    end
-  end
-
-  def marketing_price_sample_file
-    file_path = Rails.root.join('public', 'docs', 'marketing_price_sample_file.xlsx')
-    if File.exist?(file_path)
-      send_file file_path, type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                           disposition: 'attachment'
-    else
-      render json: { error: 'File not found' }, status: :not_found
-    end
-  end
-
-  def raw_file_sample_file
-    file_path = Rails.root.join('public', 'docs', 'raw_file_sample_file.xlsx')
-    if File.exist?(file_path)
-      send_file file_path, type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                           disposition: 'attachment'
-    else
-      render json: { error: 'File not found' }, status: :not_found
-    end
-  end
-
-  def awp_sample_file
-    file_path = Rails.root.join('public', 'docs', 'awp_sample_file.xlsx')
-    if File.exist?(file_path)
-      send_file file_path, type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                           disposition: 'attachment'
-    else
-      render json: { error: 'File not found' }, status: :not_found
-    end
-  end
-
-  def standard_reference_price_sample_file
-    file_path = Rails.root.join('public', 'docs', 'standard_reference_price_sample_file.xlsx')
-    if File.exist?(file_path)
-      send_file file_path, type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                           disposition: 'attachment'
-    else
-      render json: { error: 'File not found' }, status: :not_found
-    end
   end
 
   private
