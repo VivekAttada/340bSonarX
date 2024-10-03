@@ -261,12 +261,14 @@ class InternalPriceController < ApplicationController
 
   def claim_management
     @contract_pharmacy = search_contract_pharmacy
+    total_count = total_contract_pharmacy_count
     if params[:matched].present?
       @contract_pharmacy = search_contract_pharmacy.where(matched_status: true)
-    elsif params[:un_matched].present?
+      total_count = @contract_pharmacy.count
+    elsif params[:unmatched].present?
       @contract_pharmacy = search_contract_pharmacy.where(paid_status: nil)
+      total_count = @contract_pharmacy.count
     end
-    total_count = total_contract_pharmacy_count
     contract_pharmacy_details = map_contract_pharmacy_details(@contract_pharmacy, total_count)
 
     if search_params_present? && contract_pharmacy_details.empty?
