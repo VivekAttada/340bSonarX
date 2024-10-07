@@ -107,7 +107,7 @@ class InternalPriceController < ApplicationController
   def match_ndc_code
     match_param = params[:match]
     if match_param.present?
-      MatchNdcCodeJob.perform_async
+      MatchNdcCodeJob.perform_async(params[:health_system_name])
       render json: { message: 'MatchNdcCodeJob has been triggered.' }, status: :ok
     else
       render json: { error: 'Missing match parameter.' }, status: :unprocessable_entity
