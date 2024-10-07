@@ -1,0 +1,44 @@
+<div style="border-bottom: 2px solid lightgrey;display: flex;margin-top: 50px;">
+  <%= link_to all_contract_pharmacies_path(hospital_name: params[:hospital_name]) do %>
+      <div style="color: black;margin-left: 10px;background-color: <%= request.path.include?('contract_pharmacies') ? 'lightgreen'  : '' %>">Contract Pharmacies</div>
+    <% end %>
+    <%= link_to dashboard_path(hospital_name: params[:hospital_name]) do %>
+      <div style="color: black;margin-left: 15px;background-color: <%= request.path.include?('dashboard') ? 'lightgreen'  : '' %>">Dashboard</div>
+    <% end %>
+    <%= link_to reimbursement_path(hospital_name: params[:hospital_name]) do %>
+      <div style="color: black;margin-left: 15px;background-color: <%= request.path.include?('reimbursement') ? 'lightgreen'  : '' %>">Reimbursement Spread</div>
+    <% end %>
+  <%= link_to claim_management_path(hospital_name: params[:hospital_name]) do %>
+  <div style="color: black;margin-left: 15px;">Claim Management</div>
+  <% end %>
+   <%= link_to analytics_path(hospital_name: params[:hospital_name]) do %>
+    <div style="color: black;margin-left: 15px;">Analytics</div>
+  <% end %>
+</div><br><br>
+  <center>
+  <div style="width: 50%;">
+    <table style="border: 2px solid black;width: 100%;">
+      <thead>
+        <tr>
+          <th style="text-align: start">CONTRACT PHARMACY NAME</th>
+          <th style="text-align: start">CLAIM COUNT</th>
+          <th style="text-align: start">CORRECTLY PAID CLAIM AMOUNT</th>
+          <th style="text-align: start">UNDERPAID CLAIM AMOUNT</th>
+          <th style="text-align: start">OVERPAID CLAIM AMOUNT</th>
+          <th style="text-align: start">TOTAL PAID AMOUNT</th>
+        </tr>
+      <tbody>
+        <% @contract_pharmacy.each do |details| %>
+          <tr>
+            <td style="padding: 10px;"><%= details %></td>
+            <td><%= claim_count(details, params[:sort])%></td>
+            <td><%=  '$' + number_with_delimiter(correctly_paid_claim(details, params[:sort])) %></td>
+            <td><%=  '$' + number_with_delimiter(under_paid_claim(details, params[:sort])) %></td>
+            <td><%=  '$' + number_with_delimiter(over_paid_claim(details, params[:sort])) %></td>
+            <td></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</center>
