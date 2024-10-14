@@ -295,6 +295,38 @@ class InternalPriceController < ApplicationController
     render json: { message: 'Claim status updated successfully' }, status: :ok
   end
 
+  def report_and_analytics
+    @contract_pharmacy_group_level = RawFile.where(health_system_name: params[:hospital_name]).all.map(&:rx_file_provider_name).uniq.count
+    @contract_pharmacy_name_level = RawFile.where(health_system_name: params[:hospital_name]).all.map(&:contract_pharmacy_name).uniq.count
+    @pegfilgrastim = RawFile.where(health_system_name: params[:hospital_name], paid_status: "correctly_paid").count
+    @leuprolide_acetate = RawFile.where(health_system_name: params[:hospital_name], paid_status: "under_paid").count
+    @acei_drugs = RawFile.where(health_system_name: params[:hospital_name], paid_status: "over_paid").count
+    @contract_pharmacy_names = RawFile.where(health_system_name: params[:hospital_name])
+                                     .group(:rx_file_provider_name)
+                                     .count
+    @hospital_series = {}
+    RawFile.where(health_system_name: params[:hospital_name]).group(:rx_file_provider_name, :paid_status).count.each do |(provider_name, paid_status), count|
+      @hospital_series[provider_name] ||= { correctly_paid: 0, under_paid: 0, over_paid: 0 }
+      case paid_status
+      when "correctly_paid"
+        @hospital_series[provider_name][:correctly_paid] += count
+      when "under_paid"
+        @hospital_series[provider_name][:under_paid] += count
+      when "over_paid"
+        @hospital_series[provider_name][:over_paid] += count
+      end
+    end
+    raw_data = RawFile.where(health_system_name: params[:hospital_name])
+                    .group(:rx_file_provider_name, :claim_status)
+                    .count
+    @hospital_series_claims = {}
+
+    raw_data.each do |(provider_name, claim_status), count|
+      @hospital_series_claims[provider_name] ||= {}
+      @hospital_series_claims[provider_name][claim_status.to_sym] = count
+    end
+  end
+
   private
 
   def search_contract_pharmacy
@@ -311,22 +343,22 @@ class InternalPriceController < ApplicationController
   end
 
   def map_contract_pharmacy_details(contract_pharmacies, total_count)
-  {
-    count: total_count,
-    details: contract_pharmacies.map do |pharmacy_record|
-      {
-        id: pharmacy_record.id, contract_pharmacy_name: pharmacy_record.contract_pharmacy_name,
-        contract_pharmacy_group: pharmacy_record.rx_file_provider_name, drug_name: pharmacy_record.drug_name.squish,
-        ndc_code: pharmacy_record.ndc, awp: awp_price(pharmacy_record),
-        program_revenue: "$#{pharmacy_record.program_revenue.round(0)}",
-        expected_reimbursement: pharmacy_record.paid_status.present? ? "$#{expected_reimbursement_matching(pharmacy_record).round(0)}" : '',
-        reimbursement_spread: reimbursement_spread(pharmacy_record).present? ? "$#{reimbursement_spread(pharmacy_record).round(0)}" : '',
-        paid_status: pharmacy_record.paid_status,
-        dispensed_date: pharmacy_record.dispensed_date, claim_status: pharmacy_record.claim_status,
-      }
-    end
-  }
-end
+    {
+      count: total_count,
+      details: contract_pharmacies.map do |pharmacy_record|
+        {
+          id: pharmacy_record.id, contract_pharmacy_name: pharmacy_record.contract_pharmacy_name,
+          contract_pharmacy_group: pharmacy_record.rx_file_provider_name, drug_name: pharmacy_record.drug_name.squish,
+          ndc_code: pharmacy_record.ndc, awp: awp_price(pharmacy_record),
+          program_revenue: "$#{pharmacy_record.program_revenue.round(0)}",
+          expected_reimbursement: pharmacy_record.paid_status.present? ? "$#{expected_reimbursement_matching(pharmacy_record).round(0)}" : '',
+          reimbursement_spread: reimbursement_spread(pharmacy_record).present? ? "$#{reimbursement_spread(pharmacy_record).round(0)}" : '',
+          paid_status: pharmacy_record.paid_status,
+          dispensed_date: pharmacy_record.dispensed_date, claim_status: pharmacy_record.claim_status,
+        }
+      end
+    }
+  end
 
   def search_params_present?
     params[:search].present? || params[:drug_name].present? || params[:ndc].present? ||

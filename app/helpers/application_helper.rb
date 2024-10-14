@@ -135,7 +135,7 @@ module ApplicationHelper
   def correctly_paid_claim(details, sort = nil)
     query = RawFile.where(health_system_name: params[:hospital_name].gsub('_', ' '),
                           rx_file_provider_name: details,
-                          paid_status: 'Correctly paid')
+                          paid_status: 'correctly_paid')
 
     if sort.present?
       case sort
@@ -156,7 +156,7 @@ module ApplicationHelper
   def contract_pharmacy_name_level_correct_paid_claim(details, sort)
     query = RawFile.where(health_system_name: params[:hospital_name].gsub('_', ' '),
                           contract_pharmacy_name: details,
-                          paid_status: 'Correctly paid')
+                          paid_status: 'correctly_paid')
 
     if sort.present?
       case sort
@@ -177,7 +177,7 @@ module ApplicationHelper
   def contract_pharmacy_name_level_under_paid(details, sort)
      query = RawFile.where(health_system_name: params[:hospital_name].gsub('_', ' '),
                           contract_pharmacy_name: details,
-                          paid_status: 'Underpaid')
+                          paid_status: 'under_paid')
 
     if sort.present?
       case sort
@@ -198,7 +198,7 @@ module ApplicationHelper
   def over_paid_claim(details, sort)
     query = RawFile.where(health_system_name: params[:hospital_name].gsub('_', ' '),
                           rx_file_provider_name: details,
-                          paid_status: 'Overpaid')
+                          paid_status: 'over_paid')
 
     if sort.present?
       case sort
@@ -238,7 +238,7 @@ module ApplicationHelper
   def under_paid_claim(details, sort)
     query = RawFile.where(health_system_name: params[:hospital_name].gsub('_', ' '),
                           rx_file_provider_name: details,
-                          paid_status: 'Underpaid')
+                          paid_status: 'under_paid')
 
     if sort.present?
       case sort
@@ -355,6 +355,6 @@ module ApplicationHelper
   end
 
   def reimbursement_ndc_level_group_under_paid(details)
-    RawFile.where(ndc: details, paid_status: 'Underpaid').sum(:program_revenue).to_i
+    RawFile.where(ndc: details, paid_status: 'under_paid').sum(:program_revenue).to_i
   end
 end

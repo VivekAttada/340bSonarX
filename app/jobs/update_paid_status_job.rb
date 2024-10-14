@@ -38,11 +38,11 @@ class UpdatePaidStatusJob < Struct.new(:id)
     raw_upper_bound = raw_sum + raw_three_percent
 
     if final_sum.between?(raw_lower_bound, raw_upper_bound)
-      status =  "Correctly paid"
+      status =  "correctly_paid"
     elsif raw_lower_bound < final_sum
-      status =  "Underpaid"
+      status =  "under_paid"
     elsif raw_upper_bound > final_sum
-      status =  "Overpaid"
+      status =  "over_paid"
     end
 
       RawFile.where(health_system_name: health_system).where(ndc: ndc_code).update_all(paid_status: status)
