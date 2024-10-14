@@ -22,6 +22,7 @@ Rails.application.routes.draw do
   get 'claim_management', to: 'internal_price#claim_management', as: 'claim_management'
   get 'claim_each_contract_pharmacy', to: 'internal_price#claim_each_contract_pharmacy',
                                       as: 'claim_each_contract_pharmacy'
+  get 'report_and_analytics', to: 'internal_price#report_and_analytics', as: 'report_and_analytics'
 
   post 'update_claim_status', to: 'internal_price#update_claim_status', as: 'update_claim_status'
   get 'marketing_price_sample_file', to: 'internal_price#marketing_price_sample_file'
