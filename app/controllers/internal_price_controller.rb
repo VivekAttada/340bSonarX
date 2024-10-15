@@ -306,60 +306,59 @@ class InternalPriceController < ApplicationController
     render json: { message: 'Claim status updated successfully' }, status: :ok
   end
 
-def report_and_analytics
-  hospital_name = params[:hospital_name]
-  @contract_pharmacy_group_level = RawFile.where(health_system_name: hospital_name).distinct.count(:rx_file_provider_name)
-  @contract_pharmacy_name_level = RawFile.where(health_system_name: hospital_name).distinct.count(:contract_pharmacy_name)
-  @correctly_paid = RawFile.where(health_system_name: hospital_name, paid_status: "correctly_paid").count
-  @under_paid = RawFile.where(health_system_name: hospital_name, paid_status: "under_paid").count
-  @over_paid = RawFile.where(health_system_name: hospital_name, paid_status: "over_paid").count
-  @contract_pharmacy_names = RawFile.where(health_system_name: hospital_name)
-                                     .group(:rx_file_provider_name)
-                                     .count
-  @hospital_series = {}
-  RawFile.where(health_system_name: hospital_name).group(:rx_file_provider_name, :paid_status).count.each do |(provider_name, paid_status), count|
-    @hospital_series[provider_name] ||= { correctly_paid: 0, under_paid: 0, over_paid: 0 }
-    case paid_status
-    when "correctly_paid"
-      @hospital_series[provider_name][:correctly_paid] += count
-    when "under_paid"
-      @hospital_series[provider_name][:under_paid] += count
-    when "over_paid"
-      @hospital_series[provider_name][:over_paid] += count
+  def report_and_analytics
+    hospital_name = params[:hospital_name]&.gsub('_', ' ')
+    @contract_pharmacy_group_level = RawFile.where(health_system_name: hospital_name).distinct.count(:rx_file_provider_name)
+    @contract_pharmacy_name_level = RawFile.where(health_system_name: hospital_name).distinct.count(:contract_pharmacy_name)
+    @correctly_paid = RawFile.where(health_system_name: hospital_name, paid_status: "correctly_paid").count
+    @under_paid = RawFile.where(health_system_name: hospital_name, paid_status: "under_paid").count
+    @over_paid = RawFile.where(health_system_name: hospital_name, paid_status: "over_paid").count
+    @contract_pharmacy_names = RawFile.where(health_system_name: hospital_name)
+                                       .group(:rx_file_provider_name)
+                                       .count
+    @hospital_series = {}
+    RawFile.where(health_system_name: hospital_name).group(:rx_file_provider_name, :paid_status).count.each do |(provider_name, paid_status), count|
+      @hospital_series[provider_name] ||= { correctly_paid: 0, under_paid: 0, over_paid: 0 }
+      case paid_status
+      when "correctly_paid"
+        @hospital_series[provider_name][:correctly_paid] += count
+      when "under_paid"
+        @hospital_series[provider_name][:under_paid] += count
+      when "over_paid"
+        @hospital_series[provider_name][:over_paid] += count
+      end
     end
-  end
-  raw_data = RawFile.where(health_system_name: hospital_name)
-                    .group(:rx_file_provider_name, :claim_status)
-                    .count
-  @hospital_series_claims = {}
+    raw_data = RawFile.where(health_system_name: hospital_name)
+                      .group(:rx_file_provider_name, :claim_status)
+                      .count
+    @hospital_series_claims = {}
 
-  raw_data.each do |(provider_name, claim_status), count|
-    @hospital_series_claims[provider_name] ||= {}
+    raw_data.each do |(provider_name, claim_status), count|
+      @hospital_series_claims[provider_name] ||= {}
 
-    if claim_status.present?
-      @hospital_series_claims[provider_name][claim_status.to_sym] = count
-    else
-      @hospital_series_claims[provider_name][:unknown_claim_status] = 0
+      if claim_status.present?
+        @hospital_series_claims[provider_name][claim_status.to_sym] = count
+      else
+        @hospital_series_claims[provider_name][:unknown_claim_status] = 0
+      end
     end
+
+    @hospital_series_claims.each do |provider_name, claims|
+      claims[:unknown_claim_status] ||= 0
+    end
+
+
+    render json: {
+      contract_pharmacy_group_level: @contract_pharmacy_group_level,
+      contract_pharmacy_name_level: @contract_pharmacy_name_level,
+      correctly_paid: @correctly_paid,
+      under_paid: @under_paid,
+      over_paid: @over_paid,
+      contract_pharmacy_names: @contract_pharmacy_names,
+      hospital_series: @hospital_series,
+      hospital_series_claims: @hospital_series_claims
+    }
   end
-
-  @hospital_series_claims.each do |provider_name, claims|
-    claims[:unknown_claim_status] ||= 0
-  end
-
-
-  render json: {
-    contract_pharmacy_group_level: @contract_pharmacy_group_level,
-    contract_pharmacy_name_level: @contract_pharmacy_name_level,
-    correctly_paid: @correctly_paid,
-    under_paid: @under_paid,
-    over_paid: @over_paid,
-    contract_pharmacy_names: @contract_pharmacy_names,
-    hospital_series: @hospital_series,
-    hospital_series_claims: @hospital_series_claims
-  }
-end
-
 
   private
 
