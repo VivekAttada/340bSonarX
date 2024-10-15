@@ -25,7 +25,17 @@ class InternalPriceController < ApplicationController
   end
 
   def all_health_systems
+    search_query = params[:search].to_s.downcase
     health_system_names = InternalPrice.pluck(:health_system_name).uniq.compact
+
+    if search_query.present?
+      health_system_names = health_system_names.select { |name| name.downcase.include?(search_query) }
+    end
+
+    if search_query.present? && health_system_names.empty?
+      render json: { message: "No results found" }, status: :ok
+      return
+    end
 
     data = health_system_names.map do |name|
       {
@@ -35,6 +45,7 @@ class InternalPriceController < ApplicationController
         total_reimbursement: "$#{total_reimbursement(name).round(0)}"
       }
     end
+
     render json: data, status: :ok
   end
 
