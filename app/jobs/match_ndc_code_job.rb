@@ -41,6 +41,7 @@ class MatchNdcCodeJob
 
     query.where.not(ndc: nil).find_each do |record|
       sanitized_ndc = record.ndc.gsub('-', '').gsub('.0', '')
+      sanitized_ndc = sanitized_ndc.rjust(11, '0') if sanitized_ndc.length < 11
       record.update_column(:ndc, sanitized_ndc)
     end
   end
