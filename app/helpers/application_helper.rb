@@ -332,6 +332,8 @@ module ApplicationHelper
          InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.dispensed_quantity.to_f
       elsif InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_status: true).present?
           InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_status: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.dispensed_quantity.to_f
+      elsif StandardReferencePrice.where(ndc: pharmacy_record.ndc).where(matched_status: true).present?
+          StandardReferencePrice.where(ndc: pharmacy_record.ndc).first.package_size * pharmacy_record.reimbursement_per_quantity_dispensed.to_f
       end
     else
       nil

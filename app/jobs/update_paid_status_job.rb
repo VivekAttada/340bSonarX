@@ -32,7 +32,12 @@ class UpdatePaidStatusJob < Struct.new(:id)
     end
   end
 
-  final_sum = marketing_sum || internal_sum
+  if marketing_sum.nil? && internal_sum.nil?
+    standard_prices = StandardReferencePrice.where(health_system_name: health_system).where(ndc: ndc_code)
+    standard_reference_sum = (standard_prices.where(matched_status: true).pluck(:package_size).map(&:to_f).sum) * (standard_prices.where(matched_status: true).pluck(:reimbursement_per_quantity_dispensed).map(&:to_f).sum)
+  end
+
+  final_sum = marketing_sum || internal_sum || standard_reference_sum
     raw_three_percent = raw_sum * 0.03
     raw_lower_bound = raw_sum - raw_three_percent
     raw_upper_bound = raw_sum + raw_three_percent
