@@ -177,7 +177,7 @@ class InternalPriceController < ApplicationController
     contract_pharmacy_details = @contract_pharmacy.map do |details|
       {
         contract_pharmacy_group: details, claim_count: claim_count(params[:hospital_name]&.gsub('_', ' '), details, params[:sort]),
-        correctly_paid_claim: "$#{correctly_paid_claim(details, params[:sort])}",
+        total_program_revenue: "$#{total_program_revenue_pharmacy_group(details, params[:sort])}",
         awp: "$#{contract_pharmacy_awp(params[:hospital_name]&.gsub('_', ' '), details, params[:sort]).to_f.round(0)}",
         under_paid_claim: "$#{under_paid_claim(details, params[:sort])}"
       }

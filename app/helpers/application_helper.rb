@@ -153,6 +153,26 @@ module ApplicationHelper
     query.sum(:program_revenue).to_i
   end
 
+  def total_program_revenue_pharmacy_group(details, sort = nil)
+    query = RawFile.where(health_system_name: params[:hospital_name].gsub('_', ' '),
+                          rx_file_provider_name: details)
+
+    if sort.present?
+      case sort
+      when "four_matched"
+        query = query.where(matched_ndc_bin_pcn_state: true)
+      when "three_matched"
+        query = query.where(matched_ndc_bin_pcn: true)
+      when "two_matched"
+        query = query.where(matched_ndc_bin: true)
+      end
+    else
+      query = query.where(matched_status: true)
+    end
+
+    query.sum(:program_revenue).to_i
+  end
+
   def contract_pharmacy_name_level_correct_paid_claim(details, sort)
     query = RawFile.where(health_system_name: params[:hospital_name].gsub('_', ' '),
                           contract_pharmacy_name: details,
