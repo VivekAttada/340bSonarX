@@ -386,7 +386,7 @@ class InternalPriceController < ApplicationController
           program_revenue: "$#{pharmacy_record.program_revenue.round(0)}",
           expected_reimbursement: pharmacy_record.paid_status.present? ? "$#{expected_reimbursement_matching(pharmacy_record).round(0)}" : '',
           reimbursement_spread: reimbursement_spread(pharmacy_record).present? ? "$#{reimbursement_spread(pharmacy_record).round(0)}" : '',
-          paid_status: pharmacy_record.paid_status,
+          paid_status: pharmacy_record.paid_status.try(:gsub, "_", " ")&.capitalize,
           dispensed_date: pharmacy_record.dispensed_date, claim_status: pharmacy_record.claim_status,
         }
       end
