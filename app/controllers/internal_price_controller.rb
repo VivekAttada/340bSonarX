@@ -361,7 +361,13 @@ class InternalPriceController < ApplicationController
           contract_pharmacy_group: pharmacy_record.rx_file_provider_name, drug_name: pharmacy_record.drug_name.squish,
           ndc_code: pharmacy_record.ndc, awp: awp_price(pharmacy_record),
           program_revenue: "$#{pharmacy_record.program_revenue.round(0)}",
-          expected_reimbursement: pharmacy_record.paid_status.present? ? "$#{expected_reimbursement_matching(pharmacy_record).round(0)}" : '',
+          expected_reimbursement: if !pharmacy_record.paid_status.present? && !expected_reimbursement_matching(pharmacy_record).present?
+                                    ''
+                                  elsif pharmacy_record.paid_status.present? && expected_reimbursement_matching(pharmacy_record).present?
+                                    "$#{expected_reimbursement_matching(pharmacy_record).round(0)}"
+                                  else
+                                    ''
+                                  end,
           reimbursement_spread: reimbursement_spread(pharmacy_record).present? ? "$#{reimbursement_spread(pharmacy_record).round(0)}" : '',
           paid_status: pharmacy_record.paid_status.try(:gsub, "_", " ")&.capitalize,
           dispensed_date: pharmacy_record.dispensed_date, claim_status: pharmacy_record.claim_status,

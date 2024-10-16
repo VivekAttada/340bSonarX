@@ -351,9 +351,14 @@ module ApplicationHelper
       elsif InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin: true).present?
          InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.dispensed_quantity.to_f
       elsif InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_status: true).present?
-          InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_status: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.dispensed_quantity.to_f
+         InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_status: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.dispensed_quantity.to_f
       elsif StandardReferencePrice.where(ndc: pharmacy_record.ndc).where(matched_status: true).present?
-          StandardReferencePrice.where(ndc: pharmacy_record.ndc).first.package_size * pharmacy_record.reimbursement_per_quantity_dispensed.to_f
+         standard_reference_price = InternalPrice.where(ndc: pharmacy_record.ndc).first
+        if standard_reference_price
+          total_reimbursement = standard_reference_price.package_size.to_f * standard_reference_price.reimbursement_per_quantity_dispensed.to_f
+        else
+          total_reimbursement = 0
+        end
       end
     else
       nil
@@ -361,8 +366,12 @@ module ApplicationHelper
   end
 
   def reimbursement_spread(pharmacy_record)
-    (expected_reimbursement_matching(pharmacy_record) - pharmacy_record.program_revenue) if pharmacy_record.paid_status.present?
+    return nil unless pharmacy_record.paid_status.present?
+
+    expected_reimbursement = expected_reimbursement_matching(pharmacy_record) || 0
+    expected_reimbursement - pharmacy_record.program_revenue.to_f
   end
+
 
   def reimbursement_ndc_level_group_drug_name(details)
     RawFile.where(ndc: details).first.drug_name
