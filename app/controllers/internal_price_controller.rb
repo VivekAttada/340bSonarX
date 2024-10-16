@@ -250,26 +250,6 @@ class InternalPriceController < ApplicationController
     }
   end
 
-  # def reimbursement_each_contract_pharmacy
-  #   @contract_pharmacy_records = RawFile.search(
-  #     params[:search], nil, nil, nil, nil, params[:hospital_name]&.gsub('_', ' '), nil, nil, nil )
-  #                                       .where(rx_file_provider_name: params[:contract_pharmacy_name].gsub('_', ' '))
-  #                                       .page(params[:drug_page]).per(20)
-  #   if search_params_present? && @contract_pharmacy_records.empty?
-  #     render json: { message: 'No results found' }, status: :not_found
-  #     return
-  #   end
-  #   contract_pharmacy_details = @contract_pharmacy_records.map do |details|
-  #     {
-  #       contract_pharmacy_name: details.contract_pharmacy_name,
-  #       ndc: details.ndc,
-  #       uniq_contract_pharmacy: uniq_contract_pharmacy(details.ndc, params[:sort]),
-  #       paid_status: details.paid_status
-  #     }
-  #   end
-  #   render json: contract_pharmacy_details
-  # end
-
   def claim_management
     @contract_pharmacy = search_contract_pharmacy
     total_count = total_contract_pharmacy_count
@@ -301,8 +281,6 @@ class InternalPriceController < ApplicationController
 
   def update_claim_status
     RawFile.find_by_id(params[:id]).update(claim_status: params[:claim])
-    # MarketingPrice.where(ndc: params[:ndc]).update(claim_status: params[:claim])
-    # InternalPrice.where(ndc: params[:ndc]).update(claim_status: params[:claim])
     render json: { message: 'Claim status updated successfully' }, status: :ok
   end
 
@@ -346,7 +324,6 @@ class InternalPriceController < ApplicationController
     @hospital_series_claims.each do |provider_name, claims|
       claims[:unknown_claim_status] ||= 0
     end
-
 
     render json: {
       contract_pharmacy_group_level: @contract_pharmacy_group_level,
