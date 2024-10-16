@@ -155,7 +155,7 @@ module ApplicationHelper
 
   def total_program_revenue_pharmacy_group(details, sort = nil)
     query = RawFile.where(health_system_name: params[:hospital_name].gsub('_', ' '),
-                          rx_file_provider_name: details)
+                          rx_file_provider_name: details).where.not(paid_status: nil)
 
     if sort.present?
       case sort
