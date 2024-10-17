@@ -146,21 +146,45 @@ class InternalPriceController < ApplicationController
   end
 
   def dashboard
-    @contract_pharmacy = RawFile.search(params[:search], params[:drug_name],
-                                        params[:ndc], params[:contract_pharmacy_name], params[:contract_pharmacy_group],
-                                        params[:hospital_name]&.gsub('_', ' '), params[:dispensed_date_start], params[:dispensed_date_end], params[:sort])
-                                .all.map(&:rx_file_provider_name).uniq
+    hospital_name = params[:hospital_name]&.gsub('_', ' ')
 
-    contract_pharmacy_details = @contract_pharmacy.map do |details|
+    @contract_pharmacy = RawFile.search(
+      params[:search], params[:drug_name], params[:ndc],
+      params[:contract_pharmacy_name], params[:contract_pharmacy_group],
+      hospital_name, params[:dispensed_date_start], params[:dispensed_date_end], params[:sort]
+    ).map(&:rx_file_provider_name).uniq
+
+    paginated_pharmacies = Kaminari.paginate_array(@contract_pharmacy).page(params[:page]).per(4)
+
+    contract_pharmacy_details = paginated_pharmacies.map do |details|
       {
-        contract_pharmacy_group: details, claim_count: claim_count(params[:hospital_name]&.gsub('_', ' '), details, params[:sort]),
-        correctly_paid_claim: "$#{correctly_paid_claim(details, params[:sort])}",
-        under_paid_claim: "$#{under_paid_claim(details, params[:sort])}",
-        over_paid_claim: "$#{over_paid_claim(details, params[:sort])}"
+        contract_pharmacy_group: details,
+        claim_count: claim_count(hospital_name, details, params[:sort]),
+        correctly_paid_claim: format_currency(correctly_paid_claim(details, params[:sort])),
+        under_paid_claim: format_currency(under_paid_claim(details, params[:sort])),
+        over_paid_claim: format_currency(over_paid_claim(details, params[:sort]))
       }
     end
 
-    render json: contract_pharmacy_details
+    health_system_cumulative_details = {
+      total_program_revenue: calculate_total_program_revenue(hospital_name),
+      total_sum_of_claims: calculate_total_sum_of_claims(hospital_name),
+      total_sum_of_underpaid_claims: calculate_total_sum_of_underpaid_claims(hospital_name)
+    }
+
+    charts = {
+      claims_underpaid_count: calculate_total_no_of_underpaid_claims(hospital_name),
+      total_claims_count: calculate_total_no_of_claims(hospital_name),
+      total_sum_under_paid: calculate_total_sum_of_underpaid_claims(hospital_name),
+      total_program_revenue: calculate_total_program_revenue(hospital_name)
+    }
+
+    render json: {
+      charts: charts,
+      contract_pharmacy_details: contract_pharmacy_details,
+      health_system_cumulative_details: health_system_cumulative_details,
+      total_pages: paginated_pharmacies.total_pages
+    }
   end
 
   def reimbursement
@@ -358,9 +382,9 @@ class InternalPriceController < ApplicationController
       details: contract_pharmacies.map do |pharmacy_record|
         {
           id: pharmacy_record.id, contract_pharmacy_name: pharmacy_record.contract_pharmacy_name,
-          contract_pharmacy_group: pharmacy_record.rx_file_provider_name, drug_name: pharmacy_record.drug_name.squish,
+          contract_pharmacy_group: pharmacy_record.rx_file_provider_name, drug_name: pharmacy_record.drug_name&.squish,
           ndc_code: pharmacy_record.ndc, awp: awp_price(pharmacy_record),
-          program_revenue: "$#{pharmacy_record.program_revenue.round(0)}",
+          program_revenue: pharmacy_record.program_revenue.present? ? "$#{pharmacy_record.program_revenue.round(0)}" : " ",
           expected_reimbursement: if !pharmacy_record.paid_status.present? && !expected_reimbursement_matching(pharmacy_record).present?
                                     ''
                                   elsif pharmacy_record.paid_status.present? && expected_reimbursement_matching(pharmacy_record).present?
@@ -406,5 +430,9 @@ class InternalPriceController < ApplicationController
       primary_plan_type: record.primary_plan_type,
       primary_benefit_plan_name: record.primary_benefit_plan_name
     }
+  end
+
+  def format_currency(amount)
+    "$#{'%.2f' % amount}" # Ensures two decimal places
   end
 end
