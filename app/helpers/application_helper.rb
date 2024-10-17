@@ -353,9 +353,9 @@ module ApplicationHelper
       elsif InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_status: true).present?
          InternalPrice.where(ndc: pharmacy_record.ndc).where(matched_status: true).first.reimbursement_per_quantity_dispensed * pharmacy_record.dispensed_quantity.to_f
       elsif StandardReferencePrice.where(ndc: pharmacy_record.ndc).where(matched_status: true).present?
-         standard_reference_price = InternalPrice.where(ndc: pharmacy_record.ndc).first
+         standard_reference_price = StandardReferencePrice.where(ndc: pharmacy_record.ndc).first
         if standard_reference_price
-          total_reimbursement = standard_reference_price.package_size.to_f * standard_reference_price.reimbursement_per_quantity_dispensed.to_f
+          total_reimbursement = standard_reference_price.reimbursement_per_quantity_dispensed.to_f * pharmacy_record.dispensed_quantity.to_f
         else
           total_reimbursement = 0
         end
@@ -371,8 +371,7 @@ module ApplicationHelper
     expected_reimbursement = expected_reimbursement_matching(pharmacy_record) || 0
     expected_reimbursement - pharmacy_record.program_revenue.to_f
   end
-
-
+ 
   def reimbursement_ndc_level_group_drug_name(details)
     RawFile.where(ndc: details).first.drug_name
   end
@@ -387,5 +386,25 @@ module ApplicationHelper
 
   def reimbursement_ndc_level_group_under_paid(details)
     RawFile.where(ndc: details, paid_status: 'under_paid').sum(:program_revenue).to_i
+  end
+
+  def calculate_total_program_revenue(hospital_name)
+    RawFile.where(health_system_name: hospital_name).sum(:program_revenue).to_i
+  end
+
+  def calculate_total_sum_of_claims(hospital_name)
+    RawFile.where(health_system_name: hospital_name).where.not(paid_status: nil).sum(:program_revenue).to_i
+  end
+
+  def calculate_total_sum_of_underpaid_claims(hospital_name)
+    RawFile.where(health_system_name: hospital_name).where(paid_status: "under_paid").sum(:program_revenue).to_i
+  end
+
+  def calculate_total_no_of_underpaid_claims(hospital_name)
+    RawFile.where(health_system_name: hospital_name).where(paid_status: "under_paid").count
+  end
+
+  def calculate_total_no_of_claims(hospital_name)
+    RawFile.where(health_system_name: hospital_name).where.not(paid_status: nil).count
   end
 end
