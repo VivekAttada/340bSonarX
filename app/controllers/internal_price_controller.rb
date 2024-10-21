@@ -23,7 +23,7 @@ class InternalPriceController < ApplicationController
       health_system_names = health_system_names.select { |name| name.downcase.include?(search_query) }
     end
 
-    paginated_pharmacies = Kaminari.paginate_array(health_system_names).page(params[:page]).per(1)
+    paginated_pharmacies = Kaminari.paginate_array(health_system_names).page(params[:page]).per(5)
 
     if search_query.present? && health_system_names.empty?
       render json: { message: "No results found" }, status: :ok
@@ -39,7 +39,7 @@ class InternalPriceController < ApplicationController
       }
     end
 
-    render json: data, status: :ok
+    render json: {data: data, total_count: health_system_names.count}, status: :ok
   end
 
   def internal_file_bulk_upload
