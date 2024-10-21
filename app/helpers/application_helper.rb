@@ -73,20 +73,20 @@ module ApplicationHelper
     end
   end
 
-  def contract_pharmacy_name_level_claim(hospital_name, details, sort)
+  def contract_pharmacy_name_level_claim(hospital_name, pharmacy_group, details, sort)
     if sort.present?
       if sort = "four_matched"
-        RawFile.where(health_system_name: hospital_name, contract_pharmacy_name: details,
+        RawFile.where(health_system_name: hospital_name, rx_file_provider_name: pharmacy_group, contract_pharmacy_name: details,
                               matched_ndc_bin_pcn_state: true).where.not(paid_status: nil).count
       elsif sort = 'three_matched'
-        RawFile.where(health_system_name: hospital_name, contract_pharmacy_name: details,
+        RawFile.where(health_system_name: hospital_name, rx_file_provider_name: pharmacy_group, contract_pharmacy_name: details,
                               matched_ndc_bin_pcn: true).where.not(paid_status: nil).count
       elsif sort = 'two_matched'
-        RawFile.where(health_system_name: hospital_name, contract_pharmacy_name: details,
+        RawFile.where(health_system_name: hospital_name, rx_file_provider_name: pharmacy_group, contract_pharmacy_name: details,
                               matched_ndc_bin: true).where.not(paid_status: nil).count
       end
     else
-       RawFile.where(health_system_name: hospital_name, contract_pharmacy_name: details,
+       RawFile.where(health_system_name: hospital_name, rx_file_provider_name: pharmacy_group, contract_pharmacy_name: details,
                               matched_status: true).where.not(paid_status: nil).count
     end
   end

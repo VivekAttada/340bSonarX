@@ -6,15 +6,6 @@ class InternalPriceController < ApplicationController
                      only: %i[awp_file_bulk_upload internal_file_bulk_upload raw_file_bulk_upload marketing_price_bulk_upload
                               update_claim_status standard_reference_price_file_bulk_upload match_ndc_code add_health_system]
 
-  # def index
-  #  @internal_price = InternalPrice.new
-  #  @marketing_price = MarketingPrice.new
-  #  @raw_file = RawFile.new
-  #  @awp_price = AwpPrice.new
-  #  @standard_reference_file = StandardReferencePrice.new
-  #  @internal_details = InternalPrice.all.map(&:health_system_name).uniq.compact
-  # end
-
   def add_health_system
     if params[:hospital_name].present?
       InternalPrice.create(health_system_name: params[:hospital_name])
@@ -167,9 +158,9 @@ class InternalPriceController < ApplicationController
     end
 
     health_system_cumulative_details = {
-      total_program_revenue: calculate_total_program_revenue(hospital_name),
-      total_sum_of_claims: calculate_total_sum_of_claims(hospital_name),
-      total_sum_of_underpaid_claims: calculate_total_sum_of_underpaid_claims(hospital_name)
+      total_program_revenue: format_currency(calculate_total_program_revenue(hospital_name)),
+      total_sum_of_claims: format_currency(calculate_total_sum_of_claims(hospital_name)),
+      total_sum_of_underpaid_claims: format_currency(calculate_total_sum_of_underpaid_claims(hospital_name))
     }
 
     charts = {
@@ -228,7 +219,7 @@ class InternalPriceController < ApplicationController
     contract_pharmacy_details = paginated_pharmacy_records.map do |details|
       {
         contract_pharmacy_name: details,
-        claim_count: contract_pharmacy_name_level_claim(params[:contract_pharmacy_name].gsub('_', ' '), details, params[:sort]),
+        claim_count: contract_pharmacy_name_level_claim(params[:hospital_name]&.gsub('_', ' '), params[:contract_pharmacy_name], details, params[:sort]),
         correctly_paid_claim: '$' + contract_pharmacy_name_level_correct_paid_claim(details, params[:sort]).to_s,
         awp:  '$' + contract_pharmacy_name_level_awp(details, params[:sort]).to_s,
         under_paid_claim:  '$' + contract_pharmacy_name_level_under_paid(details, params[:sort]).to_s
@@ -433,6 +424,7 @@ class InternalPriceController < ApplicationController
   end
 
   def format_currency(amount)
-    "$#{'%.2f' % amount}" # Ensures two decimal places
+    "$#{amount.round(0)}"
   end
 end
+
