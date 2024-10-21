@@ -23,12 +23,14 @@ class InternalPriceController < ApplicationController
       health_system_names = health_system_names.select { |name| name.downcase.include?(search_query) }
     end
 
+    paginated_pharmacies = Kaminari.paginate_array(health_system_names).page(params[:page]).per(1)
+
     if search_query.present? && health_system_names.empty?
       render json: { message: "No results found" }, status: :ok
       return
     end
 
-    data = health_system_names.map do |name|
+    data = paginated_pharmacies.map do |name|
       {
         health_system_name: name,
         total_health_system_claims: total_health_system_claims(name),
