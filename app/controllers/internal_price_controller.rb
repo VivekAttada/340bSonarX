@@ -196,7 +196,14 @@ class InternalPriceController < ApplicationController
         contract_pharmacy_group: details, claim_count: claim_count(params[:hospital_name]&.gsub('_', ' '), details, params[:sort]),
         total_program_revenue: "$#{total_program_revenue_pharmacy_group(details, params[:sort])}",
         awp: "$#{contract_pharmacy_awp(params[:hospital_name]&.gsub('_', ' '), details, params[:sort]).to_f.round(0)}",
-        under_paid_claim: "$#{under_paid_claim(details, params[:sort])}"
+        under_paid_claim: "$#{under_paid_claim(details, params[:sort])}",
+        expected_reimbursement: if !expected_reimbursement_matching_group(details, params[:hospital_name]&.gsub('_', ' ')).present?
+                                  ''
+                                elsif expected_reimbursement_matching_group(details, params[:hospital_name]&.gsub('_', ' ')).present?
+                                  "$#{expected_reimbursement_matching_group(details, params[:hospital_name]&.gsub('_', ' ')).round(0)}"
+                                else
+                                  ''
+                                end,
       }
     end
 
@@ -276,10 +283,27 @@ class InternalPriceController < ApplicationController
     elsif params[:matched_status].present?  && params[:matched_status] == "unmatched"
       @contract_pharmacy = search_contract_pharmacy.where(paid_status: nil)
       total_count = @contract_pharmacy.count
+    elsif params[:date_filter].present?
+      if params[:date_filter].is_a?(ActionController::Parameters) && params[:date_filter][:month].present? && params[:date_filter][:year].present?
+        month = params[:date_filter][:month].to_i
+        year = params[:date_filter][:year].to_i
+        start_date = Date.new(year, month, 1).beginning_of_month
+        end_date = Date.new(year, month, 1).end_of_month
+
+        @contract_pharmacy = search_contract_pharmacy.where(created_at: start_date..end_date)
+        total_count = @contract_pharmacy.count
+      end
+      if params[:date_filter][:start_date].present? && params[:date_filter][:end_date].present?
+        start_date = Date.parse(params[:date_filter][:start_date])
+        end_date = Date.parse(params[:date_filter][:end_date])
+
+        @contract_pharmacy = search_contract_pharmacy.where(created_at: start_date..end_date)
+        total_count = @contract_pharmacy.count
+      end
     end
     contract_pharmacy_details = map_contract_pharmacy_details(@contract_pharmacy, total_count)
 
-    if search_params_present? && contract_pharmacy_details.empty?
+    if (search_params_present?  || params[:date_filter].present?) && contract_pharmacy_details.empty?
       render json: { message: 'No results found' }, status: :not_found
     else
       render json: contract_pharmacy_details
