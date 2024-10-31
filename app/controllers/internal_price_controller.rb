@@ -1,10 +1,13 @@
 # frozen_string_literal: true
+require 'jwt_utils'
 
 class InternalPriceController < ApplicationController
   include ApplicationHelper
   skip_before_action :verify_authenticity_token,
                      only: %i[awp_file_bulk_upload internal_file_bulk_upload raw_file_bulk_upload marketing_price_bulk_upload
                               update_claim_status standard_reference_price_file_bulk_upload match_ndc_code add_health_system]
+
+  before_action :check_permissions, only: [:dashboard, :all_health_systems, :claim_management, :reimbursement]
 
   def add_health_system
     if params[:hospital_name].present?
@@ -19,8 +22,19 @@ class InternalPriceController < ApplicationController
     search_query = params[:search].to_s.downcase
     health_system_names = InternalPrice.pluck(:health_system_name).uniq.compact
 
-    if search_query.present?
-      health_system_names = health_system_names.select { |name| name.downcase.include?(search_query) }
+    if @assigned_health_systems.is_a?(String) && @assigned_health_systems == "all"
+      # Proceed as currently implemented
+      if search_query.present?
+        health_system_names = health_system_names.select { |name| name.downcase.include?(search_query) }
+      end
+    elsif @assigned_health_systems.is_a?(Array)
+      # Filter health_system_names to include only those in @assigned_health_systems
+      health_system_names &= @assigned_health_systems
+      if search_query.present?
+        health_system_names = health_system_names.select { |name| name.downcase.include?(search_query) }
+      end
+    else
+      render json: { error: 'You do not have permission' }, status: :forbidden and return
     end
 
     paginated_pharmacies = Kaminari.paginate_array(health_system_names).page(params[:page]).per(5)
@@ -139,7 +153,21 @@ class InternalPriceController < ApplicationController
   end
 
   def dashboard
+    # Print the values passed by check_permissions middleware
+    puts "Role: #{@role}"
+    puts "Assigned Orgs: #{@assigned_orgs}"
+    puts "Assigned Health Systems: #{@assigned_health_systems}"
+
     hospital_name = params[:hospital_name]&.gsub('_', ' ')
+
+    # Check permissions based on assigned_health_systems
+    if @assigned_health_systems.is_a?(String) && @assigned_health_systems == "all"
+      # Proceed if assigned_health_systems is "all"
+    elsif @assigned_health_systems.is_a?(Array) && @assigned_health_systems.include?(hospital_name)
+      # Proceed if assigned_health_systems is an array and includes hospital_name
+    else
+      render json: { error: 'You do not have permission' }, status: :forbidden and return
+    end
 
     @contract_pharmacy = RawFile.search(
       params[:search], params[:drug_name], params[:ndc],
@@ -176,14 +204,28 @@ class InternalPriceController < ApplicationController
       charts: charts,
       contract_pharmacy_details: contract_pharmacy_details,
       health_system_cumulative_details: health_system_cumulative_details,
-      total_pages: paginated_pharmacies.total_pages
+      total_pages: paginated_pharmacies.total_pages,
+      role: @role,
+      assigned_orgs: @assigned_orgs,
+      assigned_health_systems: @assigned_health_systems
     }
   end
 
   def reimbursement
+    hospital_name = params[:hospital_name]&.gsub('_', ' ')
+
+    # Check permissions based on assigned_health_systems
+    if @assigned_health_systems.is_a?(String) && @assigned_health_systems == "all"
+      # Proceed if assigned_health_systems is "all"
+    elsif @assigned_health_systems.is_a?(Array) && @assigned_health_systems.include?(hospital_name)
+      # Proceed if assigned_health_systems is an array and includes hospital_name
+    else
+      render json: { error: 'You do not have permission' }, status: :forbidden and return
+    end
+
     @contract_pharmacy = RawFile.search(params[:search], params[:drug_name],
                                         params[:ndc], params[:contract_pharmacy_name],
-                                        params[:contract_pharmacy_group], params[:hospital_name]&.gsub('_', ' '),
+                                        params[:contract_pharmacy_group], hospital_name,
                                         params[:dispensed_date_start], params[:dispensed_date_end], params[:sort])
                                 .all.map(&:rx_file_provider_name).uniq
     if @contract_pharmacy.empty?
@@ -275,6 +317,17 @@ class InternalPriceController < ApplicationController
   end
 
   def claim_management
+    hospital_name = params[:hospital_name]&.gsub('_', ' ')
+
+    # Check permissions based on assigned_health_systems
+    if @assigned_health_systems.is_a?(String) && @assigned_health_systems == "all"
+      # Proceed if assigned_health_systems is "all"
+    elsif @assigned_health_systems.is_a?(Array) && @assigned_health_systems.include?(hospital_name)
+      # Proceed if assigned_health_systems is an array and includes hospital_name
+    else
+      render json: { error: 'You do not have permission' }, status: :forbidden and return
+    end
+
     @contract_pharmacy = search_contract_pharmacy
     total_count = total_contract_pharmacy_count
     if params[:matched_status].present? && params[:matched_status] == "matched"
@@ -451,6 +504,32 @@ class InternalPriceController < ApplicationController
 
   def format_currency(amount)
     "$#{amount.round(0)}"
+  end
+
+  private
+
+  def check_permissions
+    authorization = request.headers['Authorization']
+
+    if authorization.blank?
+      render json: { error: 'You need to login first' }, status: :unauthorized and return
+    end
+
+    permissions_token = authorization.gsub('Bearer ', '')
+
+    if permissions_token.blank?
+      render json: { error: 'You need to login first' }, status: :unauthorized and return
+    end
+
+    begin
+      jwt_payload = JWTUtils.validate_token(permissions_token)
+    rescue JWT::DecodeError
+      render json: { error: 'Invalid token' }, status: :unauthorized and return
+    end
+
+    @role = jwt_payload['role']
+    @assigned_orgs = jwt_payload['assignedOrgs']
+    @assigned_health_systems = jwt_payload['assignedHealthSystems']
   end
 end
 

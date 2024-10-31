@@ -31,6 +31,10 @@ gem 'delayed_job_active_record'
 gem 'kaminari'
 gem 'roo', '2.8.3'
 
+gem 'rack-cors'
+
+gem 'jwt'
+
 gem 'sidekiq'
 
 gem 'pg'
