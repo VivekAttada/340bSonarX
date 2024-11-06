@@ -377,25 +377,25 @@ module ApplicationHelper
 
       marketing_prices = MarketingPrice.where(ndc: pharmacy_record)
       if marketing_prices.where(matched_ndc_bin_pcn: true).present?
-        total_sum << marketing_prices.where(matched_ndc_bin_pcn: true).map(&:reimbursement_per_quantity_dispensed).sum * dispensed_quantity
+        total_sum << marketing_prices.where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
       elsif marketing_prices.where(matched_ndc_bin: true).present?
-        total_sum << marketing_prices.where(matched_ndc_bin: true).map(&:reimbursement_per_quantity_dispensed).sum * dispensed_quantity
+        total_sum << marketing_prices.where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
       elsif marketing_prices.where(matched_status: true).present?
-        total_sum << marketing_prices.where(matched_status: true).map(&:reimbursement_per_quantity_dispensed).sum * dispensed_quantity
+        total_sum << marketing_prices.where(matched_status: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
       end
 
       internal_prices = InternalPrice.where(ndc: pharmacy_record)
       if internal_prices.where(matched_ndc_bin_pcn: true).present?
-        total_sum << internal_prices.where(matched_ndc_bin_pcn: true).map(&:reimbursement_per_quantity_dispensed).sum * dispensed_quantity
+        total_sum << internal_prices.where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
       elsif internal_prices.where(matched_ndc_bin: true).present?
-        total_sum << internal_prices.where(matched_ndc_bin: true).map(&:reimbursement_per_quantity_dispensed).sum * dispensed_quantity
+        total_sum << internal_prices.where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
       elsif internal_prices.where(matched_status: true).present?
-        total_sum << internal_prices.where(matched_status: true).map(&:reimbursement_per_quantity_dispensed).sum * dispensed_quantity
+        total_sum << internal_prices.where(matched_status: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
       end
 
       standard_reference_price = StandardReferencePrice.where(ndc: pharmacy_record, matched_status: true)
       if standard_reference_price.present?
-        total_sum << standard_reference_price.map(&:reimbursement_per_quantity_dispensed).sum * dispensed_quantity
+        total_sum << standard_reference_price.first.reimbursement_per_quantity_dispensed * dispensed_quantity
       end
     end
     
