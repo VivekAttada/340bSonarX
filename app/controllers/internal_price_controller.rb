@@ -189,8 +189,10 @@ class InternalPriceController < ApplicationController
 
     health_system_cumulative_details = {
       total_program_revenue: format_currency(calculate_total_program_revenue(hospital_name)),
-      total_sum_of_claims: format_currency(calculate_total_sum_of_claims(hospital_name)),
-      total_sum_of_underpaid_claims: format_currency(calculate_total_sum_of_underpaid_claims(hospital_name))
+      total_claims_count: calculate_total_no_of_claims(hospital_name),
+      reimbursement_spread: health_system_reimbursement_spread(hospital_name).present? ? "$#{health_system_reimbursement_spread(hospital_name).round(0)}" : '',
+      # total_sum_of_claims: format_currency(calculate_total_sum_of_claims(hospital_name)),
+      # total_sum_of_underpaid_claims: format_currency(calculate_total_sum_of_underpaid_claims(hospital_name))
     }
 
     charts = {
