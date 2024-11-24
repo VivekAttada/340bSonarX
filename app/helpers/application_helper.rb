@@ -173,10 +173,9 @@ module ApplicationHelper
     query.sum(:program_revenue).to_i
   end
 
-  def contract_pharmacy_name_level_correct_paid_claim(details, sort)
+  def total_program_revenue_pharmacy_name_level(details, sort = nil)
     query = RawFile.where(health_system_name: params[:hospital_name].gsub('_', ' '),
-                          contract_pharmacy_name: details,
-                          paid_status: 'correctly_paid')
+                          contract_pharmacy_name: details )
 
     if sort.present?
       case sort
@@ -193,6 +192,47 @@ module ApplicationHelper
 
     query.sum(:program_revenue).to_i
   end
+
+  def total_program_revenue_ndc_level(details, sort = nil)
+    query = RawFile.where(health_system_name: params[:hospital_name].gsub('_', ' '),
+                          ndc: details )
+
+    if sort.present?
+      case sort
+      when "four_matched"
+        query = query.where(matched_ndc_bin_pcn_state: true)
+      when "three_matched"
+        query = query.where(matched_ndc_bin_pcn: true)
+      when "two_matched"
+        query = query.where(matched_ndc_bin: true)
+      end
+    else
+      query = query.where(matched_status: true)
+    end
+
+    query.sum(:program_revenue).to_i
+  end
+
+  # def contract_pharmacy_name_level_correct_paid_claim(details, sort)
+  #   query = RawFile.where(health_system_name: params[:hospital_name].gsub('_', ' '),
+  #                         contract_pharmacy_name: details,
+  #                         paid_status: 'correctly_paid')
+
+  #   if sort.present?
+  #     case sort
+  #     when "four_matched"
+  #       query = query.where(matched_ndc_bin_pcn_state: true)
+  #     when "three_matched"
+  #       query = query.where(matched_ndc_bin_pcn: true)
+  #     when "two_matched"
+  #       query = query.where(matched_ndc_bin: true)
+  #     end
+  #   else
+  #     query = query.where(matched_status: true)
+  #   end
+
+  #   query.sum(:program_revenue).to_i
+  # end
 
   def contract_pharmacy_name_level_under_paid(details, sort)
      query = RawFile.where(health_system_name: params[:hospital_name].gsub('_', ' '),
@@ -365,6 +405,155 @@ module ApplicationHelper
     end
   end
 
+  def expected_reimbursement_matching_group(pharmacy_group, hospital_name)
+    pharmacy_ndc = RawFile.where(health_system_name: hospital_name, rx_file_provider_name: pharmacy_group, matched_status: true).map(&:ndc).uniq
+    total_sum = []
+
+    vv = RawFile.where(ndc: pharmacy_ndc, matched_status: true)
+
+    return unless vv
+    vv.each do |pharmacy_record|
+
+      dispensed_quantity = pharmacy_record.dispensed_quantity.to_f
+
+      marketing_prices = MarketingPrice.where(ndc: pharmacy_record.ndc)
+      internal_prices = InternalPrice.where(ndc: pharmacy_record.ndc)
+      standard_reference_price = StandardReferencePrice.where(ndc: pharmacy_record.ndc, matched_status: true)
+
+      if marketing_prices.where(matched_ndc_bin_pcn: true).present?
+        total_sum << marketing_prices.where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      elsif marketing_prices.where(matched_ndc_bin: true).present?
+        total_sum << marketing_prices.where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      elsif marketing_prices.where(matched_status: true).present?
+        total_sum << marketing_prices.where(matched_status: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      elsif internal_prices.where(matched_ndc_bin_pcn: true).present?
+        total_sum << internal_prices.where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      elsif internal_prices.where(matched_ndc_bin: true).present?
+        total_sum << internal_prices.where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      elsif internal_prices.where(matched_status: true).present?
+        total_sum << internal_prices.where(matched_status: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      elsif standard_reference_price.present?
+        total_sum << standard_reference_price.first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      end
+    end
+    
+    total_sum.sum
+  end
+
+  def expected_reimbursement_pharmacy_name_level(pharmacy_name, hospital_name)
+    pharmacy_ndc = RawFile.where(health_system_name: hospital_name, contract_pharmacy_name: pharmacy_name, matched_status: true).map(&:ndc).uniq
+    total_sum = []
+    vv = RawFile.where(ndc: pharmacy_ndc, matched_status: true)
+
+    return unless vv
+    vv.each do |pharmacy_record|
+
+      dispensed_quantity = pharmacy_record.dispensed_quantity.to_f
+
+      marketing_prices = MarketingPrice.where(ndc: pharmacy_record.ndc)
+      internal_prices = InternalPrice.where(ndc: pharmacy_record.ndc)
+      standard_reference_price = StandardReferencePrice.where(ndc: pharmacy_record.ndc, matched_status: true)
+
+      if marketing_prices.where(matched_ndc_bin_pcn: true).present?
+        total_sum << marketing_prices.where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      elsif marketing_prices.where(matched_ndc_bin: true).present?
+        total_sum << marketing_prices.where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      elsif marketing_prices.where(matched_status: true).present?
+        total_sum << marketing_prices.where(matched_status: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      elsif internal_prices.where(matched_ndc_bin_pcn: true).present?
+        total_sum << internal_prices.where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      elsif internal_prices.where(matched_ndc_bin: true).present?
+        total_sum << internal_prices.where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      elsif internal_prices.where(matched_status: true).present?
+        total_sum << internal_prices.where(matched_status: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      elsif standard_reference_price.present?
+        total_sum << standard_reference_price.first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      end
+    end
+    
+    total_sum.sum
+  end
+
+
+  def expected_reimbursement_ndc_level(ndc_code, hospital_name)
+    pharmacy_ndc = RawFile.where(health_system_name: hospital_name, ndc: ndc_code, matched_status: true).map(&:ndc).uniq
+    total_sum = []
+    vv = RawFile.where(ndc: pharmacy_ndc, matched_status: true)
+
+    return unless vv
+    vv.each do |pharmacy_record|
+
+      dispensed_quantity = pharmacy_record.dispensed_quantity.to_f
+
+      marketing_prices = MarketingPrice.where(ndc: pharmacy_record.ndc)
+      internal_prices = InternalPrice.where(ndc: pharmacy_record.ndc)
+      standard_reference_price = StandardReferencePrice.where(ndc: pharmacy_record.ndc, matched_status: true)
+
+      if marketing_prices.where(matched_ndc_bin_pcn: true).present?
+        total_sum << marketing_prices.where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      elsif marketing_prices.where(matched_ndc_bin: true).present?
+        total_sum << marketing_prices.where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      elsif marketing_prices.where(matched_status: true).present?
+        total_sum << marketing_prices.where(matched_status: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      elsif internal_prices.where(matched_ndc_bin_pcn: true).present?
+        total_sum << internal_prices.where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      elsif internal_prices.where(matched_ndc_bin: true).present?
+        total_sum << internal_prices.where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      elsif internal_prices.where(matched_status: true).present?
+        total_sum << internal_prices.where(matched_status: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      elsif standard_reference_price.present?
+        total_sum << standard_reference_price.first.reimbursement_per_quantity_dispensed * dispensed_quantity
+      end
+    end
+    
+    total_sum.sum
+  end
+
+  def total_expected_reimbursement_hospital(hospital_name)
+    pharmacy_ndc = RawFile.where(health_system_name: hospital_name, matched_status: true).map(&:ndc).uniq
+    total_sum = []
+    vv = RawFile.where(ndc: pharmacy_ndc, matched_status: true)
+
+    return unless vv
+    vv.each do |pharmacy_record|
+
+      dispensed_quantity = pharmacy_record.dispensed_quantity.to_f
+
+      if pharmacy_record.paid_status == "under_paid"
+        marketing_prices = MarketingPrice.where(ndc: pharmacy_record.ndc)
+        internal_prices = InternalPrice.where(ndc: pharmacy_record.ndc)
+        standard_reference_price = StandardReferencePrice.where(ndc: pharmacy_record.ndc, matched_status: true)
+
+        if marketing_prices.where(matched_ndc_bin_pcn: true).present?
+          total_sum << marketing_prices.where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+        elsif marketing_prices.where(matched_ndc_bin: true).present?
+          total_sum << marketing_prices.where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+        elsif marketing_prices.where(matched_status: true).present?
+          total_sum << marketing_prices.where(matched_status: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+        elsif internal_prices.where(matched_ndc_bin_pcn: true).present?
+          total_sum << internal_prices.where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+        elsif internal_prices.where(matched_ndc_bin: true).present?
+          total_sum << internal_prices.where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+        elsif internal_prices.where(matched_status: true).present?
+          total_sum << internal_prices.where(matched_status: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
+        elsif standard_reference_price.present?
+          total_sum << standard_reference_price.first.reimbursement_per_quantity_dispensed * dispensed_quantity
+        end
+      elsif pharmacy_record.paid_status == "correctly_paid" || pharmacy_record.paid_status == "over_paid"
+        total_sum << RawFile.where(health_system_name: hospital_name, paid_status: pharmacy_record.paid_status).sum(:program_revenue).to_i
+      end
+    end
+    
+    total_sum.sum
+  end
+
+  def reimbursement_spread(pharmacy_record)
+    return nil unless pharmacy_record.paid_status.present?
+
+    expected_reimbursement = expected_reimbursement_matching(pharmacy_record) || 0
+    expected_reimbursement - pharmacy_record.program_revenue.to_f
+  end
+
   def health_system_reimbursement_spread(hospital_name)
     all_records = RawFile.where(health_system_name: hospital_name).where(paid_status: 'under_paid')
     spread_sum = []
@@ -375,64 +564,17 @@ module ApplicationHelper
     spread_sum.sum
   end
 
-  def expected_reimbursement_matching_group(pharmacy_group, hospital_name)
-    pharmacy_ndc = RawFile.where(health_system_name: hospital_name, rx_file_provider_name: pharmacy_group, matched_status: true, paid_status: 'under_paid').map(&:ndc).uniq
-    total_sum = []
-    
-    pharmacy_ndc.each do |pharmacy_record|
-      vv = RawFile.where(ndc: pharmacy_record, matched_status: true, paid_status: 'under_paid').first
-      next unless vv
-
-      dispensed_quantity = vv.dispensed_quantity.to_f
-
-      marketing_prices = MarketingPrice.where(ndc: pharmacy_record, paid_status: 'under_paid')
-      if marketing_prices.where(matched_ndc_bin_pcn: true).present?
-        total_sum << marketing_prices.where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
-      elsif marketing_prices.where(matched_ndc_bin: true).present?
-        total_sum << marketing_prices.where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
-      elsif marketing_prices.where(matched_status: true).present?
-        total_sum << marketing_prices.where(matched_status: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
-      end
-
-      internal_prices = InternalPrice.where(ndc: pharmacy_record, paid_status: 'under_paid')
-      if internal_prices.where(matched_ndc_bin_pcn: true).present?
-        total_sum << internal_prices.where(matched_ndc_bin_pcn: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
-      elsif internal_prices.where(matched_ndc_bin: true).present?
-        total_sum << internal_prices.where(matched_ndc_bin: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
-      elsif internal_prices.where(matched_status: true).present?
-        total_sum << internal_prices.where(matched_status: true).first.reimbursement_per_quantity_dispensed * dispensed_quantity
-      end
-
-      standard_reference_price = StandardReferencePrice.where(ndc: pharmacy_record, matched_status: true)
-      if standard_reference_price.present?
-        total_sum << standard_reference_price.first.reimbursement_per_quantity_dispensed * dispensed_quantity
-      end
-    end
-    
-    total_sum.sum
+  def reimbursement_ndc_level_group_drug_name(details)
+    RawFile.where(ndc: details).first.drug_name
   end
 
   def reimbursement_ndc_level_group_claims(details)
-    # RawFile.where(ndc: details).where.not(paid_status: nil).sum(:program_revenue).to_i
-    RawFile.where(ndc: details).where(paid_status: 'under_paid').count
- end
+    RawFile.where(ndc: details).where.not(paid_status: nil).count
+  end
 
   def reimbursement_ndc_level_group_awp(details)
-    # AwpPrice.where(ndc: details).map { |price| price.awp.to_f }.sum
     under_paids = RawFile.where(ndc: details, paid_status: 'under_paid').pluck(:ndc).uniq
     AwpPrice.where(ndc: under_paids).map { |price| price.awp.to_f }.sum
-  end
-
-
-  def reimbursement_spread(pharmacy_record)
-    return nil unless pharmacy_record.paid_status.present?
-
-    expected_reimbursement = expected_reimbursement_matching(pharmacy_record) || 0
-    expected_reimbursement - pharmacy_record.program_revenue.to_f
-  end
- 
-  def reimbursement_ndc_level_group_drug_name(details)
-    RawFile.where(ndc: details).first.drug_name
   end
 
   def reimbursement_ndc_level_group_under_paid(details)

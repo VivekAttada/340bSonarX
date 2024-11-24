@@ -9,6 +9,7 @@ class InternalPriceController < ApplicationController
 
   before_action :check_permissions, only: [:dashboard, :all_health_systems, :claim_management, :reimbursement]
 
+
   def add_health_system
     if params[:hospital_name].present?
       InternalPrice.create(health_system_name: params[:hospital_name])
@@ -22,19 +23,8 @@ class InternalPriceController < ApplicationController
     search_query = params[:search].to_s.downcase
     health_system_names = InternalPrice.pluck(:health_system_name).uniq.compact
 
-    if @assigned_health_systems.is_a?(String) && @assigned_health_systems == "all"
-      # Proceed as currently implemented
-      if search_query.present?
-        health_system_names = health_system_names.select { |name| name.downcase.include?(search_query) }
-      end
-    elsif @assigned_health_systems.is_a?(Array)
-      # Filter health_system_names to include only those in @assigned_health_systems
-      health_system_names &= @assigned_health_systems
-      if search_query.present?
-        health_system_names = health_system_names.select { |name| name.downcase.include?(search_query) }
-      end
-    else
-      render json: { error: 'You do not have permission' }, status: :forbidden and return
+    if search_query.present?
+      health_system_names = health_system_names.select { |name| name.downcase.include?(search_query) }
     end
 
     paginated_pharmacies = Kaminari.paginate_array(health_system_names).page(params[:page]).per(5)
@@ -153,21 +143,7 @@ class InternalPriceController < ApplicationController
   end
 
   def dashboard
-    # Print the values passed by check_permissions middleware
-    puts "Role: #{@role}"
-    puts "Assigned Orgs: #{@assigned_orgs}"
-    puts "Assigned Health Systems: #{@assigned_health_systems}"
-
     hospital_name = params[:hospital_name]&.gsub('_', ' ')
-
-    # Check permissions based on assigned_health_systems
-    if @assigned_health_systems.is_a?(String) && @assigned_health_systems == "all"
-      # Proceed if assigned_health_systems is "all"
-    elsif @assigned_health_systems.is_a?(Array) && @assigned_health_systems.include?(hospital_name)
-      # Proceed if assigned_health_systems is an array and includes hospital_name
-    else
-      render json: { error: 'You do not have permission' }, status: :forbidden and return
-    end
 
     @contract_pharmacy = RawFile.search(
       params[:search], params[:drug_name], params[:ndc],
@@ -190,9 +166,8 @@ class InternalPriceController < ApplicationController
     health_system_cumulative_details = {
       total_program_revenue: format_currency(calculate_total_program_revenue(hospital_name)),
       total_claims_count: calculate_total_no_of_claims(hospital_name),
-      reimbursement_spread: health_system_reimbursement_spread(hospital_name).present? ? "$#{health_system_reimbursement_spread(hospital_name).round(0)}" : '',
-      # total_sum_of_claims: format_currency(calculate_total_sum_of_claims(hospital_name)),
-      # total_sum_of_underpaid_claims: format_currency(calculate_total_sum_of_underpaid_claims(hospital_name))
+      total_expected_reimbursement: format_currency(total_expected_reimbursement_hospital(hospital_name)),
+      reimbursement_spread: health_system_reimbursement_spread(hospital_name).present? ? "$#{health_system_reimbursement_spread(hospital_name).round(0)}" : ''
     }
 
     charts = {
@@ -206,10 +181,7 @@ class InternalPriceController < ApplicationController
       charts: charts,
       contract_pharmacy_details: contract_pharmacy_details,
       health_system_cumulative_details: health_system_cumulative_details,
-      total_pages: paginated_pharmacies.total_pages,
-      role: @role,
-      assigned_orgs: @assigned_orgs,
-      assigned_health_systems: @assigned_health_systems
+      total_pages: paginated_pharmacies.total_pages
     }
   end
 
@@ -227,7 +199,7 @@ class InternalPriceController < ApplicationController
 
     @contract_pharmacy = RawFile.search(params[:search], params[:drug_name],
                                         params[:ndc], params[:contract_pharmacy_name],
-                                        params[:contract_pharmacy_group], hospital_name,
+                                        params[:contract_pharmacy_group], params[:hospital_name]&.gsub('_', ' '),
                                         params[:dispensed_date_start], params[:dispensed_date_end], params[:sort])
                                 .all.map(&:rx_file_provider_name).uniq
     if @contract_pharmacy.empty?
@@ -241,7 +213,7 @@ class InternalPriceController < ApplicationController
         total_program_revenue: "$#{total_program_revenue_pharmacy_group(details, params[:sort])}",
         awp: "$#{contract_pharmacy_awp(params[:hospital_name]&.gsub('_', ' '), details, params[:sort]).to_f.round(0)}",
         under_paid_claim: "$#{under_paid_claim(details, params[:sort])}",
-        expected_reimbursement: if !expected_reimbursement_matching_group(details, params[:hospital_name]&.gsub('_', ' ')).present?
+        total_expected_reimbursement: if !expected_reimbursement_matching_group(details, params[:hospital_name]&.gsub('_', ' ')).present?
                                   ''
                                 elsif expected_reimbursement_matching_group(details, params[:hospital_name]&.gsub('_', ' ')).present?
                                   "$#{expected_reimbursement_matching_group(details, params[:hospital_name]&.gsub('_', ' ')).round(0)}"
@@ -253,6 +225,7 @@ class InternalPriceController < ApplicationController
 
     render json: contract_pharmacy_details
   end
+
 
   def reimbursement_each_contract_pharmacy_one
     @contract_pharmacy_records = RawFile.search(
@@ -273,9 +246,16 @@ class InternalPriceController < ApplicationController
       {
         contract_pharmacy_name: details,
         claim_count: contract_pharmacy_name_level_claim(params[:hospital_name]&.gsub('_', ' '), params[:contract_pharmacy_name], details, params[:sort]),
-        correctly_paid_claim: '$' + contract_pharmacy_name_level_correct_paid_claim(details, params[:sort]).to_s,
         awp:  '$' + contract_pharmacy_name_level_awp(details, params[:sort]).to_s,
-        under_paid_claim:  '$' + contract_pharmacy_name_level_under_paid(details, params[:sort]).to_s
+        under_paid_claim:  '$' + contract_pharmacy_name_level_under_paid(details, params[:sort]).to_s,
+        total_program_revenue: "$#{total_program_revenue_pharmacy_name_level(details, params[:sort])}",
+        total_expected_reimbursement: if !expected_reimbursement_pharmacy_name_level(details, params[:hospital_name]&.gsub('_', ' ')).present?
+                                  ''
+                                elsif expected_reimbursement_pharmacy_name_level(details, params[:hospital_name]&.gsub('_', ' ')).present?
+                                  "$#{expected_reimbursement_pharmacy_name_level(details, params[:hospital_name]&.gsub('_', ' ')).round(0)}"
+                                else
+                                  ''
+                                end,
       }
     end
 
@@ -284,7 +264,6 @@ class InternalPriceController < ApplicationController
       total_count: paginated_pharmacy_records.total_count
     }
   end
-
 
   def reimbursement_each_contract_pharmacy
     @contract_pharmacy_records = RawFile.search(
@@ -306,9 +285,17 @@ class InternalPriceController < ApplicationController
       {
         drug_name: reimbursement_ndc_level_group_drug_name(details).to_s.squish,
         ndc: details,
-        total_claims: reimbursement_ndc_level_group_claims(details),
+        claim_count: reimbursement_ndc_level_group_claims(details),
         awp: reimbursement_ndc_level_group_awp(details),
-        under_paid_amount: reimbursement_ndc_level_group_under_paid(details)
+        under_paid_amount: reimbursement_ndc_level_group_under_paid(details),
+        total_program_revenue: "$#{total_program_revenue_ndc_level(details, params[:sort])}",
+        total_expected_reimbursement: if !expected_reimbursement_ndc_level(details, params[:hospital_name]&.gsub('_', ' ')).present?
+                                  ''
+                                elsif expected_reimbursement_ndc_level(details, params[:hospital_name]&.gsub('_', ' ')).present?
+                                  "$#{expected_reimbursement_ndc_level(details, params[:hospital_name]&.gsub('_', ' ')).round(0)}"
+                                else
+                                  ''
+                                end,
       }
     end
 
@@ -457,7 +444,7 @@ class InternalPriceController < ApplicationController
           contract_pharmacy_group: pharmacy_record.rx_file_provider_name, drug_name: pharmacy_record.drug_name&.squish,
           ndc_code: pharmacy_record.ndc, awp: awp_price(pharmacy_record),
           program_revenue: pharmacy_record.program_revenue.present? ? "$#{pharmacy_record.program_revenue.round(0)}" : " ",
-          expected_reimbursement: if !pharmacy_record.paid_status.present? && !expected_reimbursement_matching(pharmacy_record).present?
+          total_expected_reimbursement: if !pharmacy_record.paid_status.present? && !expected_reimbursement_matching(pharmacy_record).present?
                                     ''
                                   elsif pharmacy_record.paid_status.present? && expected_reimbursement_matching(pharmacy_record).present?
                                     "$#{expected_reimbursement_matching(pharmacy_record).round(0)}"
@@ -465,7 +452,7 @@ class InternalPriceController < ApplicationController
                                     ''
                                   end,
           reimbursement_spread: reimbursement_spread(pharmacy_record).present? ? "$#{reimbursement_spread(pharmacy_record).round(0)}" : '',
-          paid_status: pharmacy_record.paid_status.try(:gsub, "_", "")&.capitalize,
+          paid_status: pharmacy_record.paid_status.try(:gsub, "_", " ")&.capitalize,
           dispensed_date: pharmacy_record.dispensed_date, claim_status: pharmacy_record.claim_status,
         }
       end
@@ -507,7 +494,6 @@ class InternalPriceController < ApplicationController
   def format_currency(amount)
     "$#{amount.round(0)}"
   end
-
   private
 
   def check_permissions
@@ -534,4 +520,3 @@ class InternalPriceController < ApplicationController
     @assigned_health_systems = jwt_payload['assignedHealthSystems']
   end
 end
-
