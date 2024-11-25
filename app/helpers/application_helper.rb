@@ -474,6 +474,23 @@ module ApplicationHelper
     total_sum.sum
   end
 
+  def reimbursement_spread_claim_count(hospital_name, details, sort)
+    if sort.present?
+      if sort = "four_matched"
+        RawFile.where(health_system_name: hospital_name, rx_file_provider_name: details,
+                      matched_ndc_bin_pcn_state: true).where(paid_status: 'under_paid').count
+      elsif sort = 'three_matched'
+        RawFile.where(health_system_name: hospital_name, rx_file_provider_name: details,
+                      matched_ndc_bin_pcn: true).where(paid_status: 'under_paid').count
+      elsif sort = 'two_matched'
+        RawFile.where(health_system_name: hospital_name, rx_file_provider_name: details,
+                      matched_ndc_bin: true).where(paid_status: 'under_paid').count
+      end
+    else
+       RawFile.where(health_system_name: hospital_name, rx_file_provider_name: details,
+                     matched_status: true).where(paid_status: 'under_paid').count
+    end
+  end
 
   def expected_reimbursement_ndc_level(ndc_code, hospital_name)
     pharmacy_ndc = RawFile.where(health_system_name: hospital_name, ndc: ndc_code, matched_status: true, paid_status: 'under_paid').map(&:ndc).uniq
@@ -579,7 +596,7 @@ module ApplicationHelper
   end
 
   def reimbursement_ndc_level_group_claims(details)
-    RawFile.where(ndc: details).where(paid_status: 'under_paid').count
+    RawFile.where(ndc: details).where(paid_status: 'under_paid').map(&:paid_status).uniq.count
   end
 
   def reimbursement_ndc_level_group_awp(details)
