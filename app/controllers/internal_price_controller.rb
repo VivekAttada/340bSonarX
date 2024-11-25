@@ -157,6 +157,7 @@ class InternalPriceController < ApplicationController
       {
         contract_pharmacy_group: details,
         claim_count: claim_count(hospital_name, details, params[:sort]),
+        reimbursement_spread: format_currency(each_pharmacy_group_reimbursement_spread(hospital_name, details)),
         correctly_paid_claim: format_currency(correctly_paid_claim(details, params[:sort])),
         under_paid_claim: format_currency(under_paid_claim(details, params[:sort])),
         over_paid_claim: format_currency(over_paid_claim(details, params[:sort]))
@@ -451,7 +452,7 @@ class InternalPriceController < ApplicationController
                                   else
                                     ''
                                   end,
-          reimbursement_spread: reimbursement_spread(pharmacy_record).present? ? "$#{reimbursement_spread(pharmacy_record).round(0)}" : '',
+          reimbursement_spread: reimbursement_spread(pharmacy_record).present? ? format_currency(reimbursement_spread(pharmacy_record).round(0)) : '',
           paid_status: pharmacy_record.paid_status.try(:gsub, "_", " ")&.capitalize,
           dispensed_date: pharmacy_record.dispensed_date, claim_status: pharmacy_record.claim_status,
         }
@@ -492,8 +493,9 @@ class InternalPriceController < ApplicationController
   end
 
   def format_currency(amount)
-    "$#{amount.round(0)}"
+    amount.to_s.include?("-") ? "-$#{amount.round(0).to_s.gsub("-","")}" : "$#{amount.round(0)}"
   end
+
   private
 
   def check_permissions

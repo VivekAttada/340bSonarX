@@ -69,7 +69,7 @@ module ApplicationHelper
       end
     else
        RawFile.where(health_system_name: hospital_name, rx_file_provider_name: details,
-                     matched_status: true).where.not(paid_status: nil).count
+                     matched_status: true).where(paid_status: 'under_paid').count
     end
   end
 
@@ -77,17 +77,17 @@ module ApplicationHelper
     if sort.present?
       if sort = "four_matched"
         RawFile.where(health_system_name: hospital_name, rx_file_provider_name: pharmacy_group, contract_pharmacy_name: details,
-                              matched_ndc_bin_pcn_state: true).where.not(paid_status: nil).count
+                              matched_ndc_bin_pcn_state: true).where(paid_status: 'under_paid').count
       elsif sort = 'three_matched'
         RawFile.where(health_system_name: hospital_name, rx_file_provider_name: pharmacy_group, contract_pharmacy_name: details,
-                              matched_ndc_bin_pcn: true).where.not(paid_status: nil).count
+                              matched_ndc_bin_pcn: true).where(paid_status: 'under_paid').count
       elsif sort = 'two_matched'
         RawFile.where(health_system_name: hospital_name, rx_file_provider_name: pharmacy_group, contract_pharmacy_name: details,
-                              matched_ndc_bin: true).where.not(paid_status: nil).count
+                              matched_ndc_bin: true).where(paid_status: 'under_paid').count
       end
     else
        RawFile.where(health_system_name: hospital_name, rx_file_provider_name: pharmacy_group, contract_pharmacy_name: details,
-                              matched_status: true).where.not(paid_status: nil).count
+                              matched_status: true).where(paid_status: 'under_paid').count
     end
   end
 
@@ -112,7 +112,7 @@ module ApplicationHelper
 
   def contract_pharmacy_name_level_awp(details, sort)
      query = RawFile.where(health_system_name: params[:hospital_name].gsub('_', ' '),
-                          contract_pharmacy_name: details)
+                          contract_pharmacy_name: details, paid_status: 'under_paid')
 
     if sort.present?
       case sort
@@ -155,7 +155,7 @@ module ApplicationHelper
 
   def total_program_revenue_pharmacy_group(details, sort = nil)
     query = RawFile.where(health_system_name: params[:hospital_name].gsub('_', ' '),
-                          rx_file_provider_name: details)
+                          rx_file_provider_name: details, paid_status: 'under_paid')
 
     if sort.present?
       case sort
@@ -175,7 +175,7 @@ module ApplicationHelper
 
   def total_program_revenue_pharmacy_name_level(details, sort = nil)
     query = RawFile.where(health_system_name: params[:hospital_name].gsub('_', ' '),
-                          contract_pharmacy_name: details )
+                          contract_pharmacy_name: details, paid_status: 'under_paid')
 
     if sort.present?
       case sort
@@ -195,7 +195,7 @@ module ApplicationHelper
 
   def total_program_revenue_ndc_level(details, sort = nil)
     query = RawFile.where(health_system_name: params[:hospital_name].gsub('_', ' '),
-                          ndc: details )
+                          ndc: details, paid_status: 'under_paid')
 
     if sort.present?
       case sort
@@ -277,7 +277,7 @@ module ApplicationHelper
   end
 
   def contract_pharmacy_awp(hospital_name, details, sort)
-    query = RawFile.where(health_system_name: hospital_name, rx_file_provider_name: details)
+    query = RawFile.where(health_system_name: hospital_name, rx_file_provider_name: details, paid_status: 'under_paid')
     if sort.present?
       case sort
       when "four_matched"
@@ -406,10 +406,10 @@ module ApplicationHelper
   end
 
   def expected_reimbursement_matching_group(pharmacy_group, hospital_name)
-    pharmacy_ndc = RawFile.where(health_system_name: hospital_name, rx_file_provider_name: pharmacy_group, matched_status: true).map(&:ndc).uniq
+    pharmacy_ndc = RawFile.where(health_system_name: hospital_name, rx_file_provider_name: pharmacy_group, matched_status: true, paid_status: 'under_paid').map(&:ndc).uniq
     total_sum = []
 
-    vv = RawFile.where(ndc: pharmacy_ndc, matched_status: true)
+    vv = RawFile.where(ndc: pharmacy_ndc, matched_status: true, paid_status: 'under_paid')
 
     return unless vv
     vv.each do |pharmacy_record|
@@ -441,9 +441,9 @@ module ApplicationHelper
   end
 
   def expected_reimbursement_pharmacy_name_level(pharmacy_name, hospital_name)
-    pharmacy_ndc = RawFile.where(health_system_name: hospital_name, contract_pharmacy_name: pharmacy_name, matched_status: true).map(&:ndc).uniq
+    pharmacy_ndc = RawFile.where(health_system_name: hospital_name, contract_pharmacy_name: pharmacy_name, matched_status: true, paid_status: 'under_paid').map(&:ndc).uniq
     total_sum = []
-    vv = RawFile.where(ndc: pharmacy_ndc, matched_status: true)
+    vv = RawFile.where(ndc: pharmacy_ndc, matched_status: true, paid_status: 'under_paid')
 
     return unless vv
     vv.each do |pharmacy_record|
@@ -476,9 +476,9 @@ module ApplicationHelper
 
 
   def expected_reimbursement_ndc_level(ndc_code, hospital_name)
-    pharmacy_ndc = RawFile.where(health_system_name: hospital_name, ndc: ndc_code, matched_status: true).map(&:ndc).uniq
+    pharmacy_ndc = RawFile.where(health_system_name: hospital_name, ndc: ndc_code, matched_status: true, paid_status: 'under_paid').map(&:ndc).uniq
     total_sum = []
-    vv = RawFile.where(ndc: pharmacy_ndc, matched_status: true)
+    vv = RawFile.where(ndc: pharmacy_ndc, matched_status: true, paid_status: 'under_paid')
 
     return unless vv
     vv.each do |pharmacy_record|
@@ -564,12 +564,22 @@ module ApplicationHelper
     spread_sum.sum
   end
 
+  def each_pharmacy_group_reimbursement_spread(hospital_name, details)
+    all_records = RawFile.where(health_system_name: hospital_name, rx_file_provider_name: details).where(paid_status: 'under_paid')
+    spread_sum = []
+    all_records.each do |pharmacy_record|
+      expected_reimbursement = expected_reimbursement_matching(pharmacy_record) || 0
+      spread_sum << expected_reimbursement - pharmacy_record.program_revenue.to_f
+    end
+    spread_sum.sum
+  end
+
   def reimbursement_ndc_level_group_drug_name(details)
     RawFile.where(ndc: details).first.drug_name
   end
 
   def reimbursement_ndc_level_group_claims(details)
-    RawFile.where(ndc: details).where.not(paid_status: nil).count
+    RawFile.where(ndc: details).where(paid_status: 'under_paid').count
   end
 
   def reimbursement_ndc_level_group_awp(details)
