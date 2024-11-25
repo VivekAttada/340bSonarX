@@ -69,7 +69,7 @@ module ApplicationHelper
       end
     else
        RawFile.where(health_system_name: hospital_name, rx_file_provider_name: details,
-                     matched_status: true).where(paid_status: 'under_paid').count
+                     matched_status: true).where.not(paid_status: nil).count
     end
   end
 
