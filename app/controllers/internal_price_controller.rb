@@ -198,30 +198,31 @@ class InternalPriceController < ApplicationController
       render json: { error: 'You do not have permission' }, status: :forbidden and return
     end
 
-    @contract_pharmacy = RawFile.search(params[:search], params[:drug_name],
-                                        params[:ndc], params[:contract_pharmacy_name],
-                                        params[:contract_pharmacy_group], params[:hospital_name]&.gsub('_', ' '),
-                                        params[:dispensed_date_start], params[:dispensed_date_end], params[:sort])
-                                .all.map(&:rx_file_provider_name).uniq
+        @contract_pharmacy = RawFile.search(params[:search], params[:drug_name],
+        params[:ndc], params[:contract_pharmacy_name],
+        params[:contract_pharmacy_group], params[:hospital_name]&.gsub('_', ' '),
+        params[:dispensed_date_start], params[:dispensed_date_end], params[:sort])
+    .where(paid_status: 'under_paid')
+    .all.map(&:rx_file_provider_name).uniq
     if @contract_pharmacy.empty?
-      render json: { message: 'No results found' }, status: :not_found
-      return
+    render json: { message: 'No results found' }, status: :not_found
+    return
     end
 
     contract_pharmacy_details = @contract_pharmacy.map do |details|
-      {
-        contract_pharmacy_group: details, claim_count: claim_count(params[:hospital_name]&.gsub('_', ' '), details, params[:sort]),
-        total_program_revenue: "$#{total_program_revenue_pharmacy_group(details, params[:sort])}",
-        awp: "$#{contract_pharmacy_awp(params[:hospital_name]&.gsub('_', ' '), details, params[:sort]).to_f.round(0)}",
-        under_paid_claim: "$#{under_paid_claim(details, params[:sort])}",
-        total_expected_reimbursement: if !expected_reimbursement_matching_group(details, params[:hospital_name]&.gsub('_', ' ')).present?
-                                  ''
-                                elsif expected_reimbursement_matching_group(details, params[:hospital_name]&.gsub('_', ' ')).present?
-                                  "$#{expected_reimbursement_matching_group(details, params[:hospital_name]&.gsub('_', ' ')).round(0)}"
-                                else
-                                  ''
-                                end,
-      }
+    {
+    contract_pharmacy_group: details, claim_count: claim_count(params[:hospital_name]&.gsub('_', ' '), details, params[:sort]),
+    total_program_revenue: "$#{total_program_revenue_pharmacy_group(details, params[:sort])}",
+    awp: "$#{contract_pharmacy_awp(params[:hospital_name]&.gsub('_', ' '), details, params[:sort]).to_f.round(0)}",
+    under_paid_claim: "$#{under_paid_claim(details, params[:sort])}",
+    total_expected_reimbursement: if !expected_reimbursement_matching_group(details, params[:hospital_name]&.gsub('_', ' ')).present?
+    ''
+    elsif expected_reimbursement_matching_group(details, params[:hospital_name]&.gsub('_', ' ')).present?
+    "$#{expected_reimbursement_matching_group(details, params[:hospital_name]&.gsub('_', ' ')).round(0)}"
+    else
+    ''
+    end,
+    }
     end
 
     render json: contract_pharmacy_details
@@ -231,7 +232,7 @@ class InternalPriceController < ApplicationController
   def reimbursement_each_contract_pharmacy_one
     @contract_pharmacy_records = RawFile.search(
       params[:search], nil, nil, nil, nil, params[:hospital_name]&.gsub('_', ' '), nil, nil, nil
-    ).where(rx_file_provider_name: params[:contract_pharmacy_name].gsub('_', ' '))
+    ).where(rx_file_provider_name: params[:contract_pharmacy_name].gsub('_', ' '), paid_status: 'under_paid')
      .all.map(&:contract_pharmacy_name).uniq
 
     paginated_pharmacy_records = Kaminari.paginate_array(@contract_pharmacy_records)
@@ -270,7 +271,7 @@ class InternalPriceController < ApplicationController
     @contract_pharmacy_records = RawFile.search(
       params[:search], nil, nil, nil, nil, params[:hospital_name]&.gsub('_', ' '), nil, nil, nil
     ).where(rx_file_provider_name: params[:contract_pharmacy_name].gsub('_', ' '))
-     .where(contract_pharmacy_name: params[:pharmacy_name])
+     .where(contract_pharmacy_name: params[:pharmacy_name]).where(paid_status: 'under_paid')
      .map(&:ndc).uniq
 
     paginated_pharmacy_records = Kaminari.paginate_array(@contract_pharmacy_records)
