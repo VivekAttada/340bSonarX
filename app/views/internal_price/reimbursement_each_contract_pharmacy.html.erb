@@ -1,0 +1,49 @@
+<div style="border-bottom: 2px solid lightgrey;display: flex;margin-top: 50px;">
+  <%= link_to all_contract_pharmacies_path(hospital_name: params[:hospital_name]) do %>
+      <div style="color: black;margin-left: 10px;background-color: <%= request.path.include?('contract_pharmacies') ? 'lightgreen'  : '' %>">Contract Pharmacies</div>
+    <% end %>
+    <%= link_to dashboard_path(hospital_name: params[:hospital_name]) do %>
+      <div style="color: black;margin-left: 15px;background-color: <%= request.path.include?('dashboard') ? 'lightgreen'  : '' %>">Dashboard</div>
+    <% end %>
+    <%= link_to reimbursement_path(hospital_name: params[:hospital_name]) do %>
+      <div style="color: black;margin-left: 15px;background-color: <%= request.path.include?('reimbursement') ? 'lightgreen'  : '' %>">Reimbursement Spread</div>
+    <% end %>
+  <%= link_to claim_management_path(hospital_name: params[:hospital_name]) do %>
+  <div style="color: black;margin-left: 15px;">Claim Management</div>
+  <% end %>
+   <%= link_to analytics_path(hospital_name: params[:hospital_name]) do %>
+    <div style="color: black;margin-left: 15px;">Analytics</div>
+  <% end %>
+</div><br><br>
+<center>
+  <div style="width: 50%;">
+    <table style="border: 2px solid black;width: 80%;">
+      <thead>
+        <tr>
+          <th style="text-align: start">CONTRACT PHARMACY GROUP</th>
+          <th style="text-align: start">NDC CODE</th>
+          <th style="text-align: start">AWP</th>
+          <th style="text-align: start">CLAIM</th>
+        </tr>
+      <tbody>
+        <% @contract_pharmacy_records.each do |details| %>
+          <tr>
+            <td style="padding: 10px;"><%= details.rx_file_provider_name %></td>
+            <td style="padding: 10px;"><%= details.ndc %></td>
+            <td style="padding: 10px;"><%= uniq_contract_pharmacy(details.ndc, params[:sort]) %></td>
+            <td style="padding: 10px;"><%= details.paid_status %></td></td>
+            <!-- <td>< %= '$' + number_with_delimiter(claim_count(details)) %></td> -->
+            <!-- <td>< %= '$' + number_with_delimiter(correctly_paid_claim(details)) %></td> -->
+            <!-- <td>< %= number_with_delimiter(under_paid_claim(details)) %></td> -->
+            <!-- <td style="color: blue;font-weight: bold;">< %= link_to each_contract_pharmacy_path(hospital_name: details) do %> View Claims< % end %></td> -->
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+ <% if @contract_pharmacy_records.respond_to?(:total_pages) %>
+  <div id="paginationContainer">
+    <%= paginate @contract_pharmacy_records, param_name: 'drug_page' %>
+  </div>
+<% end %>
+</center>
