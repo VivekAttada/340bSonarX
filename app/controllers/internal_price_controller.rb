@@ -306,10 +306,9 @@ class InternalPriceController < ApplicationController
       total_count: paginated_pharmacy_records.total_count
     }
   end
-
   def claim_management
     hospital_name = params[:hospital_name]&.gsub('_', ' ')
-
+  
     # Check permissions based on assigned_health_systems
     if @assigned_health_systems.is_a?(String) && @assigned_health_systems == "all"
       # Proceed if assigned_health_systems is "all"
@@ -318,13 +317,14 @@ class InternalPriceController < ApplicationController
     else
       render json: { error: 'You do not have permission' }, status: :forbidden and return
     end
-
+  
     @contract_pharmacy = search_contract_pharmacy
     total_count = total_contract_pharmacy_count
+  
     if params[:matched_status].present? && params[:matched_status] == "matched"
       @contract_pharmacy = search_contract_pharmacy.where(matched_status: true)
       total_count = @contract_pharmacy.count
-    elsif params[:matched_status].present?  && params[:matched_status] == "unmatched"
+    elsif params[:matched_status].present? && params[:matched_status] == "unmatched"
       @contract_pharmacy = search_contract_pharmacy.where(paid_status: nil)
       total_count = @contract_pharmacy.count
     elsif params[:date_filter].present?
@@ -333,24 +333,26 @@ class InternalPriceController < ApplicationController
         year = params[:date_filter][:year].to_i
         start_date = Date.new(year, month, 1).beginning_of_month
         end_date = Date.new(year, month, 1).end_of_month
-
+  
         @contract_pharmacy = search_contract_pharmacy.where(created_at: start_date..end_date)
         total_count = @contract_pharmacy.count
       end
       if params[:date_filter][:start_date].present? && params[:date_filter][:end_date].present?
         start_date = Date.parse(params[:date_filter][:start_date])
         end_date = Date.parse(params[:date_filter][:end_date])
-
+  
         @contract_pharmacy = search_contract_pharmacy.where(created_at: start_date..end_date)
         total_count = @contract_pharmacy.count
       end
     end
-    contract_pharmacy_details = map_contract_pharmacy_details(@contract_pharmacy, total_count)
-
-    if (search_params_present?  || params[:date_filter].present?) && contract_pharmacy_details.empty?
+  
+    paginated_pharmacies = Kaminari.paginate_array(@contract_pharmacy).page(params[:page]).per(10)
+    contract_pharmacy_details = map_contract_pharmacy_details(paginated_pharmacies, total_count)
+  
+    if (search_params_present? || params[:date_filter].present?) && contract_pharmacy_details[:details].empty?
       render json: { message: 'No results found' }, status: :not_found
     else
-      render json: contract_pharmacy_details
+      render json: contract_pharmacy_details.merge(total_pages: paginated_pharmacies.total_pages)
     end
   end
 
@@ -428,7 +430,7 @@ class InternalPriceController < ApplicationController
     RawFile.search(params[:search], params[:drug_name], params[:ndc],
                    params[:contract_pharmacy_name], params[:contract_pharmacy_group],
                    params[:hospital_name]&.gsub('_', ' '), params[:dispensed_date_start], params[:dispensed_date_end], params[:sort])
-           .page(params[:drug_page]).per(20)
+           .page(params[:drug_page])
   end
 
   def total_contract_pharmacy_count
